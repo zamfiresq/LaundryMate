@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyCTuvD97ZdTUrEcifTxjmnZxmIYx8RTvRI</string>
+	<key>GCM_SENDER_ID</key>
+	<string>281434732147</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.zamfiresq.lm-frontend</string>
+	<key>PROJECT_ID</key>
+	<string>laundrymate-bb74e</string>
+	<key>STORAGE_BUCKET</key>
+	<string>laundrymate-bb74e.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:281434732147:ios:ee79f50400fdec3a0d1c06</string>
+</dict>
+</plist>

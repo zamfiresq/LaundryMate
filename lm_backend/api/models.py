@@ -8,4 +8,3 @@ class Garment(models.Model):
 
     def __str__(self):
         return f"Garment {self.id} - {self.created_at}"
-
