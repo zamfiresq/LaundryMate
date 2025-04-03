@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,11 +8,13 @@ import { auth } from '@/firebaseConfig';
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [submitted, setSubmitted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
-    setSubmitted(true);
+    if (!email || !password) {
+      Alert.alert('Missing fields', 'Please complete all required fields.');
+      return;
+    }
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -33,7 +35,11 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Text style={styles.welcomeText}>LaundryMate</Text>
@@ -49,40 +55,44 @@ export default function LoginScreen() {
       <View style={styles.formContainer}>
         <View style={styles.inputWrapper}>
           <Ionicons name="mail-outline" size={20} color="#8c8888" style={styles.inputIcon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholderTextColor="#8c8888"
-          />
+            {!email && (
+            <Text style={{ color: 'red', marginRight: 5, marginLeft: -3, fontSize: 16 }}>*</Text>
+            )}
+          <View style={{ flex: 1 }}>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              placeholderTextColor="#8c8888"
+            />
+          </View>
         </View>
-        {submitted && !email && <Text style={{ color: 'red', marginBottom: 8 }}>Email is required.</Text>}
 
         <View style={styles.inputWrapper}>
-        <Ionicons name="lock-closed-outline" size={20} color="#8c8888" style={styles.inputIcon} />
-        
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry={!showPassword}
-          placeholderTextColor="#8c8888"
-        />
-
-        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-          <Ionicons
-            name={showPassword ? 'eye-off' : 'eye'}
-            size={20}
-            color="#8c8888"
-            style={{ marginLeft: 8 }}
+          <Ionicons name="lock-closed-outline" size={20} color="#8c8888" style={styles.inputIcon} />
+            {!password && (
+            <Text style={{ color: 'red', marginRight: 5, marginLeft: -3, fontSize: 16 }}>*</Text>
+            )}
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            placeholderTextColor="#8c8888"
           />
-        </TouchableOpacity>
-      </View>
-        {submitted && !password && <Text style={{ color: 'red', marginBottom: 8 }}>Password is required.</Text>}
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <Ionicons
+              name={showPassword ? 'eye-off' : 'eye'}
+              size={20}
+              color="#8c8888"
+              style={{ marginLeft: 8 }}
+            />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity 
           style={styles.forgotPassword} 
@@ -116,7 +126,8 @@ export default function LoginScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -158,7 +169,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    padding: 24,
+    paddingTop: 32,
+    paddingHorizontal: 24,
+    paddingBottom: 16,
     flex: 1,
     shadowColor: '#000',
     shadowOffset: {

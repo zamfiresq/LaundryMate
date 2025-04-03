@@ -1,10 +1,12 @@
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Image, ScrollView } from 'react-native';
+import { KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
 import { sendEmailVerification } from 'firebase/auth';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { updateProfile } from 'firebase/auth';
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from '@/firebaseConfig';
 
@@ -18,6 +20,8 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);  
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+
+  // password validation function
   const getPasswordErrors = (password: string) => {
     const errors = [];
     const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
@@ -49,6 +53,9 @@ export default function RegisterScreen() {
     return errors;
   };
 
+
+  // handle register button
+  // check if all fields are filled
   const handleRegister = async () => {
     setSubmitted(true);
     if (!name || !surname || !email || !password || !confirmPassword) {
@@ -73,6 +80,12 @@ export default function RegisterScreen() {
     // verify mail before creating the account
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      console.log('Setting displayName:', `${name} ${surname}`);
+      await updateProfile(userCredential.user, {
+        displayName: `${name} ${surname}`,
+      });
+      await userCredential.user.reload();
+      console.log('Reloaded user:', auth.currentUser?.displayName);
       await sendEmailVerification(userCredential.user);
       await setDoc(doc(db, "users", userCredential.user.uid), {
         firstName: name,
@@ -104,7 +117,11 @@ export default function RegisterScreen() {
   const passwordErrors = getPasswordErrors(password);
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 80 }} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 80 }} keyboardShouldPersistTaps="handled">
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.welcomeText}>LaundryMate</Text>
@@ -177,8 +194,8 @@ export default function RegisterScreen() {
           {submitted && !password && <Text style={{ color: 'red', marginBottom: 8 }}>Password is required.</Text>}
           
           {passwordErrors.map((error, index) => (
-            <Text key={index} style={{ color: error.fulfilled ? 'green' : 'red', marginBottom: 5}}>
-              {error.message}
+            <Text key={index} style={{ color: error.fulfilled ? 'green' : 'red', marginBottom: 5 }}>
+              • {error.message}
             </Text>
           ))}
           <View style={{ marginBottom: 10 }} />
@@ -222,10 +239,13 @@ export default function RegisterScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
+
+// css styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -35,13 +35,12 @@
       }
     },
     "splash": {
-      "image": "./assets/images/LaundryMateIcon1",
+      "image": "./assets/images/LaundryMateIcon1.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffdbd8"
     },
     "entryPoint": "./src/screens/LoadingScreen.tsx",
     "plugins": [
-      "@react-native-firebase/app",
       [
         "expo-build-properties",
         {
