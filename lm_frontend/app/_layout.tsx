@@ -5,9 +5,13 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import * as Linking from 'expo-linking';
+import { router } from 'expo-router';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
+
+// // layout pt root stack -> global stack
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -22,6 +26,18 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  useEffect(() => {
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      const { path } = Linking.parse(url);
+      if (path === 'verify') {
+        router.replace({
+          pathname: '/(tabs)/auth/emailVerified',
+        });
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   if (!loaded) {
     return null;

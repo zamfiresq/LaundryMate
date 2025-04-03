@@ -6,7 +6,7 @@ PODS:
   - EXJSONUtils (0.14.0)
   - EXManifests (0.15.7):
     - ExpoModulesCore
-  - Expo (52.0.38):
+  - Expo (52.0.41):
     - ExpoModulesCore
   - expo-dev-client (5.0.15):
     - EXManifests
@@ -216,17 +216,17 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - ExpoAsset (11.0.4):
+  - ExpoAsset (11.0.5):
     - ExpoModulesCore
   - ExpoBlur (14.0.3):
     - ExpoModulesCore
-  - ExpoFileSystem (18.0.11):
+  - ExpoFileSystem (18.0.12):
     - ExpoModulesCore
   - ExpoFont (13.0.4):
     - ExpoModulesCore
   - ExpoHaptics (14.0.1):
     - ExpoModulesCore
-  - ExpoHead (4.0.18):
+  - ExpoHead (4.0.19):
     - ExpoModulesCore
   - ExpoKeepAwake (14.0.3):
     - ExpoModulesCore
@@ -1923,10 +1923,10 @@ PODS:
     - React-perflogger (= 0.76.7)
     - React-utils (= 0.76.7)
   - RecaptchaInterop (101.0.0)
-  - RNFBApp (21.12.2):
+  - RNFBApp (21.12.3):
     - Firebase/CoreOnly (= 11.10.0)
     - React-Core
-  - RNFBAuth (21.12.2):
+  - RNFBAuth (21.12.3):
     - Firebase/Auth (= 11.10.0)
     - React-Core
     - RNFBApp
@@ -2426,17 +2426,17 @@ SPEC CHECKSUMS:
   EXConstants: fcfc75800824ac2d5c592b5bc74130bad17b146b
   EXJSONUtils: 01fc7492b66c234e395dcffdd5f53439c5c29c93
   EXManifests: 807ab5394ca9f8dd5e64283f02876b2f85c4eb72
-  Expo: a43b172755cb98c3ffe2a9485b16bba876d1b52f
+  Expo: 73171149d69a436153195f72d7b0fef4d82ae380
   expo-dev-client: 8ddff983ea32604dc57248d40568add68ce8ea45
   expo-dev-launcher: 75c6fd71da707bc3e11c7d617d534b90dd086462
   expo-dev-menu: 5adce24e1a06402af662fc10b015ee0e517d8efe
   expo-dev-menu-interface: 00dc42302a72722fdecec3fa048de84a9133bcc4
-  ExpoAsset: 4033893dfb333b444bf45e951351254137b658d5
+  ExpoAsset: 48386d40d53a8c1738929b3ed509bcad595b5516
   ExpoBlur: 392c1207f71d0ecf22371621c1fbd44ba84d9742
-  ExpoFileSystem: 2d804c73034c0d65eb2a640e0a77627033b69edc
+  ExpoFileSystem: 42d363d3b96f9afab980dcef60d5657a4443c655
   ExpoFont: f354e926f8feae5e831ec8087f36652b44a0b188
   ExpoHaptics: 8d199b2f33245ea85289ff6c954c7ee7c00a5b5d
-  ExpoHead: 61dc4826ce560f7d23a5bb224e9c44f0fe68dc24
+  ExpoHead: caaccab2474a1b1f3be62eb1d493f9d30c704f94
   ExpoKeepAwake: b0171a73665bfcefcfcc311742a72a956e6aa680
   ExpoLinking: 8d12bee174ba0cdf31239706578e29e74a417402
   ExpoModulesCore: ba9b945045622419389980d0c3a3d89d155595b0
@@ -2521,8 +2521,8 @@ SPEC CHECKSUMS:
   ReactCodegen: fe2ffeda5a1ad1b6f2bb4f676ae60da296630ce4
   ReactCommon: 885ac625dd73cd6585ca5c1ad5c09e1ce848b015
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
-  RNFBApp: fed929c76589400be1cb89ff3a457b3cef876907
-  RNFBAuth: 68cfc1eeb8e2e668b3c4bac8ecea25f40c7ca4d5
+  RNFBApp: 69b4ee7d34eae5f4fa9184aebce0e1659697db91
+  RNFBAuth: 76842d62315881d6752e389e85ca0bffd486bc3b
   RNFBDatabase: b19fa277200e468edcce2b487ccedc2594cd68df
   RNGestureHandler: 1e33ee267aaf61bbab6089d32df3b38c3024e3dd
   RNReanimated: 23d4dd74e67d9eb5648839dcaabc00be8aba6af4

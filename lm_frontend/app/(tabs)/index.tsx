@@ -1,87 +1,62 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
-import auth from '@react-native-firebase/auth';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { auth } from '@/firebaseConfig';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 export default function HomeScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<any>>();
-  const user = auth().currentUser;
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserEmail(user.email);
+      } else {
+        router.replace("/(tabs)/auth/login");
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleLogout = async () => {
     try {
-      await auth().signOut();
-      Alert.alert('Succes', 'Ai fost deconectat cu succes!');
-      router.replace('/login');
+      await signOut(auth);
+      router.replace("/(tabs)/auth/login");
     } catch (error: any) {
       Alert.alert('Eroare', error.message);
     }
   };
 
+  if (!userEmail) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>LaundryMate</Text>
-        <Text style={styles.headerSubtitle}>Testare Autentificare</Text>
-      </View>
-
+      <Text style={styles.welcomeText}>LaundryMate</Text>
+      
       <View style={styles.card}>
-        {user ? (
-          <>
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                <Ionicons name="person" size={40} color="#007AFF" />
-              </View>
-            </View>
-            <View style={styles.userInfoContainer}>
-              <Text style={styles.emailText}>{user.email}</Text>
-              <Text style={styles.uidText}>ID: {user.uid.slice(0, 8)}...</Text>
-              <View style={styles.statusBadge}>
-                <View style={styles.statusDot} />
-                <Text style={styles.statusText}>Activ</Text>
-              </View>
-            </View>
-          </>
-        ) : (
-          <View style={styles.noUserContainer}>
-            <Ionicons name="person-outline" size={50} color="#CBD5E0" />
-            <Text style={styles.noUserText}>Niciun utilizator conectat</Text>
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={40} color="#007AFF" />
           </View>
-        )}
+          <Text style={styles.emailText}>{userEmail}</Text>
+          <View style={styles.statusBadge}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>Activ</Text>
+          </View>
+        </View>
       </View>
 
-      <View style={styles.buttonGroup}>
-        <TouchableOpacity 
-          style={[styles.button, styles.registerButton]} 
-          onPress={() => router.push('/register')}
-        >
-          <Ionicons name="person-add" size={24} color="white" />
-          <Text style={styles.buttonText}>Înregistrare</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.button, styles.loginButton]} 
-          onPress={() => router.push('/login')}
-        >
-          <Ionicons name="log-in" size={24} color="white" />
-          <Text style={styles.buttonText}>Conectare</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.button, styles.logoutButton]} 
-          onPress={handleLogout}
-        >
-          <Ionicons name="log-out" size={24} color="white" />
-          <Text style={styles.buttonText}>Deconectare</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Status: {user ? 'Autentificat' : 'Neautentificat'}
-        </Text>
-      </View>
+      <TouchableOpacity 
+        style={styles.logoutButton} 
+        onPress={handleLogout}
+      >
+        <Ionicons name="log-out" size={24} color="#FF3B30" />
+        <Text style={styles.logoutText}>Deconectare</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -92,26 +67,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7FAFC',
     padding: 20,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 30,
-    marginTop: 60,
-  },
-  headerTitle: {
-    fontSize: 28,
+  welcomeText: {
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#2D3748',
+    textAlign: 'center',
     marginTop: 40,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#718096',
-    marginTop: 5,
+    marginBottom: 40,
   },
   card: {
     backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
+    borderRadius: 20,
+    padding: 30,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -120,11 +87,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
-    marginBottom: 30,
+    marginBottom: 20,
   },
   avatarContainer: {
     alignItems: 'center',
-    marginBottom: 15,
   },
   avatar: {
     width: 80,
@@ -133,27 +99,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#EBF8FF',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  userInfoContainer: {
-    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 3,
   },
   emailText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '500',
     color: '#2D3748',
-    marginBottom: 5,
-  },
-  uidText: {
-    fontSize: 14,
-    color: '#718096',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#E6FFFA',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
   },
   statusDot: {
@@ -161,54 +128,25 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#38B2AC',
-    marginRight: 6,
+    marginRight: 8,
   },
   statusText: {
     color: '#38B2AC',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
   },
-  noUserContainer: {
-    alignItems: 'center',
-    padding: 20,
-  },
-  noUserText: {
-    color: '#718096',
-    fontSize: 16,
-    marginTop: 10,
-  },
-  buttonGroup: {
-    gap: 15,
-  },
-  button: {
+  logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 15,
-    borderRadius: 12,
-    gap: 10,
+    backgroundColor: 'transparent',
+    padding: 16,
+    gap: 8,
+    marginTop: 20,
   },
-  registerButton: {
-    backgroundColor: '#4C51BF',
-  },
-  loginButton: {
-    backgroundColor: '#2B6CB0',
-  },
-  logoutButton: {
-    backgroundColor: '#C53030',
-  },
-  buttonText: {
-    color: 'white',
+  logoutText: {
+    color: '#FF3B30',
     fontSize: 16,
     fontWeight: '600',
-  },
-  footer: {
-    marginTop: 'auto',
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  footerText: {
-    color: '#718096',
-    fontSize: 14,
   },
 });

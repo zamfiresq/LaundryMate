@@ -4,13 +4,8 @@
     "slug": "lm_frontend",
     "version": "1.0.0",
     "orientation": "portrait",
-    "splash": {
-      "image": "./assets/images/LaundryMateIcon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#a7c9b1"
-    },
-    "icon": "./assets/images/LaundryMateIcon.png",
-    "scheme": "myapp",
+    "icon": "./assets/images/LaundryMateIcon1.png",
+    "scheme": "laundrymate",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -22,7 +17,7 @@
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#a7c9b1"
+        "backgroundColor": "#ffdbd8"
       },
       "package": "com.zamfiresq.lm_frontend"
     },
@@ -39,6 +34,12 @@
         "projectId": "f1fe42ca-f30b-4fcf-bf30-0e4f1ccda282"
       }
     },
+    "splash": {
+      "image": "./assets/images/LaundryMateIcon1",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffdbd8"
+    },
+    "entryPoint": "./src/screens/LoadingScreen.tsx",
     "plugins": [
       "@react-native-firebase/app",
       [
@@ -48,7 +49,8 @@
             "useFrameworks": "static"
           }
         }
-      ]
+      ],
+      "expo-router"
     ]
   }
 }
