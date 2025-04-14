@@ -1,0 +1,36 @@
+@startuml LaundryMate_Container
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+AddContainerTag("frontend", $bgColor="LightSkyBlue", $fontColor="White")
+AddContainerTag("backend", $bgColor="MediumAquamarine", $fontColor="White")
+AddContainerTag("infra", $bgColor="LightCoral", $fontColor="Black")
+AddContainerTag("external-ai", $bgColor="Khaki", $fontColor="Black")
+
+LAYOUT_WITH_LEGEND()
+
+Person(user, "User", "User of the mobile application")
+
+System_Boundary(laundrymate, "LaundryMate System") {
+  Container(mobile, "Mobile App", "React Native + Expo", "User interface that enables login and interaction with services", "frontend")
+  Container(api, "Backend API", "Django REST (Render)", "Backend service with endpoints for image scan and chat", "backend")
+  Container(firebase, "Firebase", "BaaS Platform", "Manages authentication and user data", "infra") {
+    Container(auth, "Authentication", "Firebase Auth", "User login and registration", "infra")
+    Container(db, "Firestore DB", "NoSQL Database", "Stores clothing data and user profiles", "infra")
+  }
+  Container(ai, "AI Services", "Third-Party APIs", "External AI services for detection and recommendations", "external-ai") {
+    Container(gemini, "Gemini API", "Text Generation", "Provides washing program tips and answers user questions", "external-ai")
+    Container(roboflow, "Roboflow API", "YOLOv5", "Detects washing symbols from uploaded images", "external-ai")
+  }
+}
+
+Rel(user, mobile, "Uses")
+Rel(mobile, auth, "Login / Register")
+Rel(mobile, db, "Stores clothing / profile data")
+Rel(mobile, api, "Sends image / question", "HTTPS")
+
+Rel(api, roboflow, "Sends image for detection", "HTTPS")
+Rel(roboflow, api, "Detected symbols", "JSON")
+Rel(api, gemini, "Sends clothing info / user prompt", "Prompt")
+Rel(gemini, api, "AI recommendations / answers", "Text")
+
+@enduml
