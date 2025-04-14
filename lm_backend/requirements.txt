@@ -4,3 +4,7 @@ django-environ
 python-dotenv
 gunicorn
 inference-sdk
+google-generativeai
+firebase-admin
+pillow
+requests
