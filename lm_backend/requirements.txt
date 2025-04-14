@@ -3,3 +3,4 @@ djangorestframework
 django-environ
 python-dotenv
 gunicorn
+inference-sdk
