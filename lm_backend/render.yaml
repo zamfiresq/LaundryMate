@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: laundrymate-backend
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn django_backend.wsgi:application
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        value: django-insecure-m6li$i$rrxnyvmnm0=fjhvx88i1g2+uqn2$odemvt76gp7ruh+
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: laundrymate-backend.onrender.com
+      - key: ROBOFLOW_API_KEY
+        value: AwwVTkVGzx3mlvAUAeyh

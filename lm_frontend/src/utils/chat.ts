@@ -1,6 +1,6 @@
 export async function getLaundryTip(message: string) {
     try {
-      const response = await fetch("http://192.168.100.92:8000/api/chat/", {
+      const response = await fetch("http://192.168.100.98:8000/api/chat/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

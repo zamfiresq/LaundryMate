@@ -20,6 +20,7 @@ def get_garments(request):
     """API endpoint for retrieving all garments"""
     garments = Garment.objects.all().order_by('-created_at')
     serializer = GarmentSerializer(garments, many=True)
+    print(serializer.data)
     return Response(serializer.data)
 
 # post request to upload an image
@@ -49,4 +50,16 @@ def upload_image(request):
     garment.detected_symbols = detected_symbols
     garment.save()
 
-    return Response(GarmentSerializer(garment).data)
+    # Prelucrează simbolurile detectate
+    raw_symbols = detected_symbols or {}
+    simboluri = sorted(raw_symbols.items(), key=lambda x: x[1]["confidence"], reverse=True)
+    simboluri_top = [s[0] for s in simboluri[:5]]
+
+    data = GarmentSerializer(garment).data
+    data["simboluri"] = simboluri_top
+    data["material"] = "bumbac"
+    data["culoare"] = "alb"
+    data["temperatura"] = "40°C" if "40C" in raw_symbols else "30°C"
+
+    print(data)
+    return Response(data)
