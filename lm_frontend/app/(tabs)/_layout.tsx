@@ -1,16 +1,31 @@
+import { useAuth } from '../../hooks/useAuth';
+import { Redirect, Slot } from 'expo-router';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
-
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
-// layout pt tab-urile aplicatiei -> navigare 
+
+// layout for the whole screens
 export default function TabLayout() {
+  const { user, loading } = useAuth();
   const colorScheme = useColorScheme();
+
+  if (loading) return null;
+
+  // only for logged in users
+  if (!user) {
+    return <Redirect href="/auth/login" />;
+  }
+
+  // if user is not verified, redirect to email verification
+  if (!user.emailVerified) {
+    return <Redirect href="/auth/emailVerified" />;
+  }
 
   return (
     <Tabs
@@ -26,6 +41,8 @@ export default function TabLayout() {
           default: {},
         }),
       }}>
+
+      {/* nav bar */}
       <Tabs.Screen
         name="index"
         options={{
@@ -34,17 +51,24 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="scan"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Scan',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="camera.metering.partial" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="clipboard.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.crop.circle.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
         }}
       />
     </Tabs>

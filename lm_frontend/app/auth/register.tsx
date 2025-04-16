@@ -3,12 +3,15 @@ import { KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-
 import { sendEmailVerification } from 'firebase/auth';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { updateProfile } from 'firebase/auth';
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from '@/firebaseConfig';
+
+
+
+
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -17,14 +20,15 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);  
+  const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
 
-  // password validation function
+
+  // function to check if the password is strong enough
   const getPasswordErrors = (password: string) => {
     const errors = [];
-    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/; // regex for password validation
 
     if (password.length < 8) {
       errors.push({ message: 'At least 8 characters', fulfilled: false });
@@ -54,6 +58,7 @@ export default function RegisterScreen() {
   };
 
 
+
   // handle register button
   // check if all fields are filled
   const handleRegister = async () => {
@@ -72,10 +77,13 @@ export default function RegisterScreen() {
       return;
     }
 
+    // if passwords are not the same
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match.');
       return;
     }
+
+    
 
     // verify mail before creating the account
     try {
@@ -85,7 +93,8 @@ export default function RegisterScreen() {
         displayName: `${name} ${surname}`,
       });
       await userCredential.user.reload();
-      console.log('Reloaded user:', auth.currentUser?.displayName);
+      // console.log('Reloaded user:', auth.currentUser?.displayName);
+
       await sendEmailVerification(userCredential.user);
       await setDoc(doc(db, "users", userCredential.user.uid), {
         firstName: name,
@@ -93,16 +102,18 @@ export default function RegisterScreen() {
         email: email,
         createdAt: new Date().toISOString(),
       });
-      Alert.alert(
+      Alert.alert(  // popup alert
         "Email verification",
         "We've sent you a confirmation email. Please verify your address before logging in.",
         [
           {
             text: "OK",
-            onPress: () => router.replace('/(tabs)/auth/emailVerified')
+            onPress: () => router.replace('/auth/emailVerified')
           }
         ]
       );
+
+      // reset fields
       setEmail('');
       setPassword('');
       setConfirmPassword('');
@@ -121,7 +132,14 @@ export default function RegisterScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 80 }} keyboardShouldPersistTaps="handled">
+
+
+      {/* ScrollView to allow scrolling when keyboard is open */}
+      <ScrollView 
+        contentContainerStyle={{ flexGrow: 1 }} 
+        keyboardShouldPersistTaps="handled" 
+        style={{ flex: 1, backgroundColor: '#F7FAFC' }}
+      >
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.welcomeText}>LaundryMate</Text>
@@ -231,7 +249,7 @@ export default function RegisterScreen() {
 
           <TouchableOpacity 
             style={styles.loginLink} 
-            onPress={() => router.push("/(tabs)/auth/login")}
+            onPress={() => router.push("/auth/login")}
           >
             <Text style={styles.loginText}>
             Already have an account? <Text style={styles.loginTextBold}>Sign in</Text>
@@ -245,7 +263,9 @@ export default function RegisterScreen() {
 }
 
 
-// css styles
+
+
+//styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -285,6 +305,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+    paddingBottom: 40,
   },
   inputWrapper: {
     flexDirection: 'row',

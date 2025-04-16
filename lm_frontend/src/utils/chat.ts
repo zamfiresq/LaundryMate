@@ -1,6 +1,8 @@
+// fetch chat response from the backend
+
 export async function getLaundryTip(message: string) {
     try {
-      const response = await fetch("http://192.168.100.98:8000/api/chat/", {
+      const response = await fetch("http://192.168.100.98:8000/api/chat/", { // manual IP modification
         method: "POST",
         headers: {
           "Content-Type": "application/json",

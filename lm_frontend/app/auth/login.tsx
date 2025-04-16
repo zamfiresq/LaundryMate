@@ -5,11 +5,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/firebaseConfig';
 
+
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  // validate email and password
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Missing fields', 'Please complete all required fields.');
@@ -21,12 +23,13 @@ export default function LoginScreen() {
       
       await user.reload(); // user data is up to date
       
+      // if email is not verified, show an alert
       if (!user.emailVerified) {
         Alert.alert('Email not verified', 'Please verify your email before logging in.');
         return;
       }
 
-      router.replace('/(tabs)');
+      router.replace('/'); // redirect to home page if the user is verified
       setEmail('');
       setPassword('');
     } catch (error: any) {
@@ -34,10 +37,11 @@ export default function LoginScreen() {
     }
   };
 
+  // handle enter key press
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
@@ -46,7 +50,7 @@ export default function LoginScreen() {
           <Image 
             source={require('@/assets/images/SignIn.png')} 
             style={{ width: 130, height: 130, resizeMode: 'contain' }} 
-          />
+          /> 
         </View>
         <Text style={styles.title}> Welcome back </Text>
         <Text style={styles.subtitle}> Please sign in to continue</Text>
@@ -94,6 +98,8 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
+
+        {/* forgot password button */}
         <TouchableOpacity 
           style={styles.forgotPassword} 
           onPress={() => router.push("/auth/forgotPassword")}
@@ -101,6 +107,8 @@ export default function LoginScreen() {
           <Text style={styles.forgotPasswordText}>Forgot your password?</Text>
         </TouchableOpacity>
 
+
+        {/* login and sign up buttons */}
         <TouchableOpacity 
           style={styles.loginButton} 
           onPress={handleLogin}
@@ -118,7 +126,7 @@ export default function LoginScreen() {
 
         <TouchableOpacity 
           style={styles.registerButton} 
-          onPress={() => router.push("/(tabs)/auth/register")}
+          onPress={() => router.push("/auth/register")}
           activeOpacity={0.8}
         >
           <Text style={styles.registerButtonText}>
@@ -131,6 +139,13 @@ export default function LoginScreen() {
   );
 }
 
+
+
+
+
+
+
+// styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
