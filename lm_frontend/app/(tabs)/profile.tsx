@@ -96,14 +96,24 @@ export default function ProfileScreen() {
     }
   };
 
-  // sign out button
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      router.replace('/auth/login');
-    } catch (error) {
-      Alert.alert(t('common.error'), t('errors.auth'));
-    }
+  // sign out button + confirmation
+  const handleSignOut = () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Yes', onPress: async () => {
+            try {
+              await signOut(auth);
+              router.replace('/auth/login');
+            } catch (error) {
+              Alert.alert(t('common.error'), t('errors.auth'));
+            }
+          }
+        },
+      ]
+    );
   };
 
   // delete account button + confirmation
@@ -261,7 +271,7 @@ export default function ProfileScreen() {
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
             <Ionicons name="log-out-outline" size={20} color="#fff" style={styles.buttonIcon} />
-            <Text style={styles.signOutText}>{t('auth.signOut')}</Text>
+            <Text style={styles.signOutText}>Log Out</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.deleteButton} onPress={showDeleteConfirmation}>

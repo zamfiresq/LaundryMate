@@ -14,7 +14,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '@/firebaseConfig';
 
 
-// // layout for root stack -> global stack
+// layout for root stack -> global stack
 // prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -45,17 +45,17 @@ export default function RootLayout() {
     return () => sub.remove();
   }, []);
 
-  if (!loaded || loading) {
-    console.log('[UI] Blocare detectata: loaded:', loaded, '| authLoading:', loading);
-    return (
-      <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: 'white', textAlign: 'center' }}>
-          Se incarca aplicatia...
-          {'\n'}loaded: {String(loaded)} | authLoading: {String(loading)}
-        </Text>
-      </View>
-    );
-  }
+  // if (!loaded || loading) {
+  //   console.log('[UI] Blocare detectata: loaded:', loaded, '| authLoading:', loading);
+  //   return (
+  //     <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
+  //       <Text style={{ color: 'white', textAlign: 'center' }}>
+  //         Se incarca aplicatia...
+  //         {'\n'}loaded: {String(loaded)} | authLoading: {String(loading)}
+  //       </Text>
+  //     </View>
+  //   );
+  // }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

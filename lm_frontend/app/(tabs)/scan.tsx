@@ -27,7 +27,7 @@ export default function ScanScreen() {
         type: 'image/jpeg',
       } as any);
 
-      const response = await fetch('http://192.168.100.98:8000/api/upload/', { // manual IP 
+      const response = await fetch('http://192.168.100.99:8000/api/upload/', { // manual IP 
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -201,8 +201,8 @@ export default function ScanScreen() {
 
 // styles
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
+  container: {
+    flex: 1,
     backgroundColor: '#F7FAFC'
   },
   header: {
@@ -213,20 +213,20 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 20,
   },
-  title: { 
-    fontSize: 24, 
-    fontWeight: '600', 
+  title: {
+    fontSize: 22,
+    fontWeight: '600',
     color: '#2D3748',
-    textAlign: 'center',
+    textAlign: 'left',
   },
   contentContainer: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 22,
   },
   actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 24,
+    marginBottom: 15,
   },
   actionButton: {
     backgroundColor: '#5bafb5',
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    marginTop: 8,
+    marginTop: 4,
   },
   itemsContainer: {
     flex: 1,
@@ -320,8 +320,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 24,
+    marginTop: 15,
+    marginBottom: 60,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

@@ -22,7 +22,7 @@ export default function Home() {
         await user.reload();
         console.log('DisplayName:', user.displayName);
         const fullName = user.displayName || '';
-        const firstName = fullName.trim().split(' ').slice(0, 2).join(' ');
+        const firstName = fullName.trim().split(' ')[0]; // display only the first name
         setDisplayName(firstName);
       }
     };
