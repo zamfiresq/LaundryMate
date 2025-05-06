@@ -27,7 +27,7 @@ export default function ScanScreen() {
         type: 'image/jpeg',
       } as any);
 
-      const response = await fetch('http://192.168.100.99:8000/api/upload/', { // manual IP 
+      const response = await fetch('http://10.10.18.234:8000/api/upload/', { // manual IP 
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',
