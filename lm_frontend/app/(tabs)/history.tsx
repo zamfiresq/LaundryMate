@@ -1,10 +1,14 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '@/context/ThemeContext';
+import { lightTheme, darkTheme } from '@/constants/theme';
 
 export default function HistoryScreen() {
+  const { isDark } = useTheme();
+  const currentTheme = isDark ? darkTheme : lightTheme;
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>History</Text>
-      <Text style={styles.text}>Here you'll see the list of scanned clothes.</Text>
+    <View style={[styles.container, { backgroundColor: currentTheme.background }] }>
+      <Text style={[styles.title, { color: currentTheme.text }]}>History</Text>
+      <Text style={[styles.text, { color: currentTheme.textSecondary }]}>Here you'll see the list of scanned clothes.</Text>
     </View>
   );
 }
@@ -15,7 +19,6 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   title: {
     fontSize: 24,
@@ -24,7 +27,6 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 16,
-    color: '#555',
   },
 });
 

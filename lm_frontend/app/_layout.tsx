@@ -10,8 +10,7 @@ import * as Linking from 'expo-linking';
 import '../i18n';
 import { useColorScheme } from '../hooks/useColorScheme';
 import { useAuth } from '../hooks/useAuth';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/firebaseConfig';
+import { ThemeProvider as CustomThemeProvider } from '@/context/ThemeContext';
 
 
 // layout for root stack -> global stack
@@ -20,12 +19,12 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   // loading user data
-  const { user, loading } = useAuth();
 
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     if (loaded) {
@@ -45,24 +44,27 @@ export default function RootLayout() {
     return () => sub.remove();
   }, []);
 
-  // if (!loaded || loading) {
-  //   console.log('[UI] Blocare detectata: loaded:', loaded, '| authLoading:', loading);
-  //   return (
-  //     <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
-  //       <Text style={{ color: 'white', textAlign: 'center' }}>
-  //         Se incarca aplicatia...
-  //         {'\n'}loaded: {String(loaded)} | authLoading: {String(loading)}
-  //       </Text>
-  //     </View>
-  //   );
-  // }
+if (!loaded || loading) {
+    console.log('[UI] Blocare detectata: loaded:', loaded, '| authLoading:', loading);
+    return (
+      <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: 'white', textAlign: 'center' }}>
+          Se incarca aplicatia...
+          {'\n'}loaded: {String(loaded)} | authLoading: {String(loading)}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="+not-found" />
-      </Stack>
+      <CustomThemeProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="auth" />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      </CustomThemeProvider>
       <StatusBar style="auto" />
     </ThemeProvider>
   );

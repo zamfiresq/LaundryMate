@@ -3,6 +3,8 @@ import { View, Text, FlatList, Image, StyleSheet, Alert, TouchableOpacity, Modal
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTheme } from '@/context/ThemeContext';
+import { lightTheme, darkTheme } from '@/constants/theme';
 
 interface ClothingItem {
   id: string;
@@ -17,6 +19,8 @@ export default function ScanScreen() {
   const [laundryItems, setLaundryItems] = useState<ClothingItem[]>([]);
   const [aiResponse, setAiResponse] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const { isDark } = useTheme();
+  const currentTheme = isDark ? darkTheme : lightTheme;
 
   const analyzeClothingImage = async (imageUri: string): Promise<ClothingItem | null> => {
     try {
@@ -109,50 +113,50 @@ export default function ScanScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.background }] }>
+      <View style={[styles.header, { backgroundColor: currentTheme.background }] }>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#5bafb5" />
+          <Ionicons name="arrow-back" size={24} color={currentTheme.primary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Scan Clothing Label</Text>
+        <Text style={[styles.title, { color: currentTheme.text }]}>Scan Clothing Label</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={styles.contentContainer}>
+      <View style={[styles.contentContainer, { backgroundColor: currentTheme.background }] }>
         <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleUploadImage}>
-            <Ionicons name="images-outline" size={24} color="#fff" />
-            <Text style={styles.actionButtonText}>Gallery</Text>
+          <TouchableOpacity style={[styles.actionButton, { backgroundColor: currentTheme.primary }]} onPress={handleUploadImage}>
+            <Ionicons name="images-outline" size={24} color={currentTheme.buttonText} />
+            <Text style={[styles.actionButtonText, { color: currentTheme.buttonText }]}>Gallery</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.actionButton} onPress={handleTakePhoto}>
-            <Ionicons name="camera-outline" size={24} color="#fff" />
-            <Text style={styles.actionButtonText}>Camera</Text>
+          <TouchableOpacity style={[styles.actionButton, { backgroundColor: currentTheme.primary }]} onPress={handleTakePhoto}>
+            <Ionicons name="camera-outline" size={24} color={currentTheme.buttonText} />
+            <Text style={[styles.actionButtonText, { color: currentTheme.buttonText }]}>Camera</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.itemsContainer}>
-          <Text style={styles.sectionTitle}>Scanned Clothes</Text>
+        <View style={[styles.itemsContainer, { backgroundColor: currentTheme.card }] }>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>Scanned Clothes</Text>
           
           {laundryItems.length === 0 ? (
             <View style={styles.placeholder}>
               <View style={styles.iconContainer}>
-                <Ionicons name="scan-outline" size={55} color="#5bafb5" />
+                <Ionicons name="scan-outline" size={55} color={currentTheme.primary} />
               </View>
-              <Text style={styles.emptyText}>No clothes scanned yet</Text>
+              <Text style={[styles.emptyText, { color: currentTheme.textSecondary }]}>No clothes scanned yet</Text>
             </View>
           ) : (
             <FlatList
               data={laundryItems}
               keyExtractor={item => item.id}
               renderItem={({ item }) => (
-                <View style={styles.itemCard}>
+                <View style={[styles.itemCard, { backgroundColor: currentTheme.card, borderColor: currentTheme.border }] }>
                   <Image source={{ uri: item.image }} style={styles.itemImage} />
                   <View style={styles.itemDetails}>
-                    <Text style={styles.itemLabel}>Material: {item.material || 'N/A'}</Text>
-                    <Text style={styles.itemLabel}>Color: {item.culoare || 'N/A'}</Text>
-                    <Text style={styles.itemLabel}>Temperature: {item.temperatura || 'N/A'}</Text>
-                    <Text style={styles.itemLabel}>Symbols: {Array.isArray(item.simboluri) ? item.simboluri.join(', ') : 'N/A'}</Text>
+                    <Text style={[styles.itemLabel, { color: currentTheme.text }]}>Material: {item.material || 'N/A'}</Text>
+                    <Text style={[styles.itemLabel, { color: currentTheme.text }]}>Color: {item.culoare || 'N/A'}</Text>
+                    <Text style={[styles.itemLabel, { color: currentTheme.text }]}>Temperature: {item.temperatura || 'N/A'}</Text>
+                    <Text style={[styles.itemLabel, { color: currentTheme.text }]}>Symbols: {Array.isArray(item.simboluri) ? item.simboluri.join(', ') : 'N/A'}</Text>
                   </View>
                 </View>
               )}
@@ -162,24 +166,24 @@ export default function ScanScreen() {
         </View>
         
         {laundryItems.length > 0 && (
-          <TouchableOpacity style={styles.doneButton} onPress={sendToGemini}>
-            <Text style={styles.doneButtonText}>Finish Scanning</Text>
+          <TouchableOpacity style={[styles.doneButton, { backgroundColor: currentTheme.primary }]} onPress={sendToGemini}>
+            <Text style={[styles.doneButtonText, { color: currentTheme.buttonText }]}>Finish Scanning</Text>
           </TouchableOpacity>
         )}
       </View>
 
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: currentTheme.card }] }>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>AI Suggestion</Text>
+              <Text style={[styles.modalTitle, { color: currentTheme.text }]}>AI Suggestion</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#5bafb5" />
+                <Ionicons name="close" size={24} color={currentTheme.primary} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.modalText}>{aiResponse}</Text>
-            <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(false)}>
-              <Text style={styles.modalButtonText}>Close</Text>
+            <Text style={[styles.modalText, { color: currentTheme.textSecondary }]}>{aiResponse}</Text>
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: currentTheme.primary }]} onPress={() => setModalVisible(false)}>
+              <Text style={[styles.modalButtonText, { color: currentTheme.buttonText }]}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -203,7 +207,6 @@ export default function ScanScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7FAFC'
   },
   header: {
     flexDirection: 'row',

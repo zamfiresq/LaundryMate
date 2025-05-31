@@ -1,4 +1,3 @@
-import { useAuth } from '../../hooks/useAuth';
 import { Redirect, Slot } from 'expo-router';
 import { Tabs } from 'expo-router';
 import React from 'react';
@@ -8,24 +7,15 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useAuth } from '@/hooks/useAuth';
 
 
-// layout for the whole screens
+// main layout for the tabs
 export default function TabLayout() {
-  const { user, loading } = useAuth();
   const colorScheme = useColorScheme();
-
+  const { user, loading } = useAuth();
   if (loading) return null;
-
-  // only for logged in users
-  if (!user) {
-    return <Redirect href="/auth/login" />;
-  }
-
-  // if user is not verified, redirect to email verification
-  if (!user.emailVerified) {
-    return <Redirect href="/auth/emailVerified" />;
-  }
+  if (!user) return <Redirect href="/auth/login" />;
 
   return (
     <Tabs

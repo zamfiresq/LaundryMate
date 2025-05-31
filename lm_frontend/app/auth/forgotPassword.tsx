@@ -1,12 +1,13 @@
 import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { useState } from 'react';
-import { auth } from '@/firebaseConfig';
+import { getFirebaseAuth } from '@/firebaseConfig';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
+  const auth = getFirebaseAuth();
 
   const handlePasswordReset = async () => {
     try {

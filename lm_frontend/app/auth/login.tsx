@@ -3,13 +3,14 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/firebaseConfig';
+import { getFirebaseAuth} from '@/firebaseConfig';
 
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const auth = getFirebaseAuth(); // lazy init aici
 
   // validate email and password
   const handleLogin = async () => {

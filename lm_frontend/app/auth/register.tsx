@@ -3,11 +3,9 @@ import { KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { sendEmailVerification } from 'firebase/auth';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
 import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from '@/firebaseConfig';
+import { getFirebaseAuth, db } from '@/firebaseConfig';
 
 
 
@@ -22,6 +20,7 @@ export default function RegisterScreen() {
   const [submitted, setSubmitted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const auth = getFirebaseAuth();
 
 
 

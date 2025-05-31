@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, SafeAreaView, ScrollView, useColorScheme, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, SafeAreaView, ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { signOut, deleteUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { signOut, deleteUser, EmailAuthProvider, reauthenticateWithCredential, updateEmail } from 'firebase/auth';
 import { doc, getDoc, deleteDoc, DocumentData, updateDoc } from 'firebase/firestore';
-import { auth, db } from '@/firebaseConfig';
+import { getFirebaseAuth, db } from '@/firebaseConfig';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@/context/ThemeContext';
+import { lightTheme, darkTheme } from '@/constants/theme';
 
 
 // profile page
 export default function ProfileScreen() {
+  const auth = getFirebaseAuth();
   const { t, i18n } = useTranslation();
+  const { theme, toggleTheme, isDark } = useTheme();
   const [userData, setUserData] = useState<DocumentData | null>(null);
-  const systemColorScheme = useColorScheme();
-  const [themeMode, setThemeMode] = useState<'light' | 'dark' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
@@ -29,24 +31,46 @@ export default function ProfileScreen() {
     { id: 'ro', name: 'Română' },
   ];
 
+  const currentTheme = isDark ? darkTheme : lightTheme;
 
   // user data + theme mode buntton
   useEffect(() => {
     const fetchUserData = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          console.log('No user found');
+          return;
+        }
 
-      const docRef = doc(db, 'users', user.uid);
-      const docSnap = await getDoc(docRef);
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
 
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setUserData(data);
-        setEditedData({
-          firstName: data.firstName || '',
-          lastName: data.lastName || '',
-          email: data.email || ''
-        });
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          console.log('User data loaded:', data);
+          setUserData(data);
+          setEditedData({
+            firstName: data.firstName || '',
+            lastName: data.lastName || '',
+            email: data.email || user.email || ''
+          });
+        } else {
+          console.log('No user document found');
+          setUserData({
+            firstName: '',
+            lastName: '',
+            email: user.email || ''
+          });
+          setEditedData({
+            firstName: '',
+            lastName: '',
+            email: user.email || ''
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        Alert.alert(t('common.error'), t('errors.general'));
       }
     };
 
@@ -54,13 +78,12 @@ export default function ProfileScreen() {
       try {
         const savedTheme = await AsyncStorage.getItem('themeMode');
         if (savedTheme) {
-          setThemeMode(savedTheme as 'light' | 'dark');
-        } else {
-          setThemeMode(systemColorScheme || 'light');
+          if (savedTheme !== theme) {
+            toggleTheme();
+          }
         }
       } catch (error) {
         console.error('Error loading theme preference:', error);
-        setThemeMode(systemColorScheme || 'light');
       } finally {
         setIsLoading(false);
       }
@@ -68,19 +91,7 @@ export default function ProfileScreen() {
 
     fetchUserData();
     loadThemePreference();
-  }, [systemColorScheme]);
-
-  const toggleTheme = async () => {
-    const newTheme = themeMode === 'light' ? 'dark' : 'light';
-    setThemeMode(newTheme);
-    
-    try {
-      await AsyncStorage.setItem('themeMode', newTheme);
-    } catch (error) {
-      console.error('Error saving theme preference:', error);
-    }
-  };
-
+  }, [auth.currentUser]);
 
   // change language (ro / en)
   const handleLanguageSelect = async (languageId: string) => {
@@ -163,109 +174,128 @@ export default function ProfileScreen() {
   const handleSaveProfile = async () => {
     try {
       const user = auth.currentUser;
-      if (!user) return;
+      if (!user) {
+        Alert.alert(t('common.error'), t('errors.auth'));
+        return;
+      }
+
+      // Validări de bază
+      if (!editedData.firstName.trim() || !editedData.lastName.trim()) {
+        Alert.alert(t('common.error'), t('profile.nameRequired'));
+        return;
+      }
+
+      if (!editedData.email.trim()) {
+        Alert.alert(t('common.error'), t('profile.emailRequired'));
+        return;
+      }
 
       const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        firstName: editedData.firstName,
-        lastName: editedData.lastName,
-        email: editedData.email
-      });
+      const updateData = {
+        firstName: editedData.firstName.trim(),
+        lastName: editedData.lastName.trim(),
+        email: editedData.email.trim(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await updateDoc(userRef, updateData);
+
+      // Actualizăm și email-ul în Firebase Auth dacă s-a schimbat
+      if (user.email !== editedData.email) {
+        try {
+          await updateEmail(user, editedData.email);
+        } catch (error: any) {
+          console.error('Error updating email:', error);
+          Alert.alert(t('common.error'), t('profile.emailUpdateError'));
+          return;
+        }
+      }
 
       setUserData({
         ...userData,
-        ...editedData
+        ...updateData
       });
 
       setIsEditModalVisible(false);
       Alert.alert(t('common.success'), t('profile.profileUpdated'));
     } catch (error) {
+      console.error('Error updating profile:', error);
       Alert.alert(t('common.error'), t('errors.general'));
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('profile.title')}</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.background }]}>
+      <View style={[styles.header, { backgroundColor: currentTheme.background }]}>
+        <Text style={[styles.headerTitle, { color: currentTheme.text }]}>{t('profile.title')}</Text>
         <TouchableOpacity onPress={toggleTheme}>
           <Ionicons 
-            name={themeMode === 'dark' ? 'sunny-outline' : 'moon-outline'} 
+            name={isDark ? 'sunny-outline' : 'moon-outline'} 
             size={24} 
-            color="#5bafb5" 
+            color={currentTheme.primary} 
           />
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.contentContainer}>
-        <View style={styles.profileCard}>
+      <ScrollView style={[styles.contentContainer, { backgroundColor: currentTheme.background }]}>
+        <View style={[styles.profileCard, { backgroundColor: currentTheme.card }]}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatarCircle}>
-              <Ionicons name="person" size={60} color="#5bafb5" />
+            <View style={[styles.avatarCircle, { backgroundColor: currentTheme.avatarBackground }]}>
+              <Ionicons name="person" size={60} color={currentTheme.primary} />
             </View>
           </View>
           
           {userData ? (
             <>
-              <Text style={styles.nameText}>{userData.firstName} {userData.lastName}</Text>
-              <Text style={styles.emailText}>{userData.email}</Text>
+              <Text style={[styles.nameText, { color: currentTheme.text }]}>{userData.firstName} {userData.lastName}</Text>
+              <Text style={[styles.emailText, { color: currentTheme.textSecondary }]}>{userData.email}</Text>
             </>
           ) : (
-            <Text style={styles.loadingText}>{t('common.loading')}</Text>
+            <Text style={[styles.loadingText, { color: currentTheme.textSecondary }]}>{t('common.loading')}</Text>
           )}
         </View>
 
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>{t('profile.editProfile')}</Text>
-          
+        <View style={[styles.sectionContainer, { backgroundColor: currentTheme.card }] }>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>{t('profile.editProfile')}</Text>
           <TouchableOpacity style={styles.settingItem} onPress={handleEditProfile}>
-            <Ionicons name="person-outline" size={22} color="#5bafb5" />
-            <Text style={styles.settingText}>{t('profile.editProfile')}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#aebbbd" />
+            <Ionicons name="person-outline" size={22} color={currentTheme.primary} />
+            <Text style={[styles.settingText, { color: currentTheme.text }]}>{t('profile.editProfile')}</Text>
+            <Ionicons name="chevron-forward" size={20} color={currentTheme.textSecondary} />
           </TouchableOpacity>
-          
-          {/* change password */}
           <TouchableOpacity style={styles.settingItem}>
-            <Ionicons name="key-outline" size={22} color="#5bafb5" />
-            <Text style={styles.settingText}>Change Password</Text>
-            <Ionicons name="chevron-forward" size={20} color="#aebbbd" />
+            <Ionicons name="key-outline" size={22} color={currentTheme.primary} />
+            <Text style={[styles.settingText, { color: currentTheme.text }]}>Change Password</Text>
+            <Ionicons name="chevron-forward" size={20} color={currentTheme.textSecondary} />
           </TouchableOpacity>
-          
-          {/* notifications */}
           <TouchableOpacity style={styles.settingItem}>
-            <Ionicons name="notifications-outline" size={22} color="#5bafb5" />
-            <Text style={styles.settingText}>{t('profile.notifications')}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#aebbbd" />
+            <Ionicons name="notifications-outline" size={22} color={currentTheme.primary} />
+            <Text style={[styles.settingText, { color: currentTheme.text }]}>{t('profile.notifications')}</Text>
+            <Ionicons name="chevron-forward" size={20} color={currentTheme.textSecondary} />
           </TouchableOpacity>
         </View>
 
         {/* settings */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>{t('settings.title')}</Text>
-          
-          {/* change language */}
+        <View style={[styles.sectionContainer, { backgroundColor: currentTheme.card }] }>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>{t('settings.title')}</Text>
           <TouchableOpacity 
             style={styles.settingItem} 
             onPress={() => setIsLanguageModalVisible(true)}
           >
-            <Ionicons name="language-outline" size={22} color="#5bafb5" />
-            <Text style={styles.settingText}>{t('profile.language')}</Text>
+            <Ionicons name="language-outline" size={22} color={currentTheme.primary} />
+            <Text style={[styles.settingText, { color: currentTheme.text }]}>{t('profile.language')}</Text>
             <View style={styles.languageSelector}>
-              <Text style={styles.selectedLanguage}>
+              <Text style={[styles.selectedLanguage, { color: currentTheme.textSecondary }] }>
                 {languages.find(lang => lang.id === selectedLanguage)?.name}
               </Text>
-              <Ionicons name="chevron-forward" size={20} color="#aebbbd" />
+              <Ionicons name="chevron-forward" size={20} color={currentTheme.textSecondary} />
             </View>
           </TouchableOpacity>
-          
-          {/* about section */}
           <TouchableOpacity style={styles.settingItem}>
-            <Ionicons name="information-circle-outline" size={22} color="#5bafb5" />
-            <Text style={styles.settingText}>{t('profile.about')}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#aebbbd" />
+            <Ionicons name="information-circle-outline" size={22} color={currentTheme.primary} />
+            <Text style={[styles.settingText, { color: currentTheme.text }]}>{t('profile.about')}</Text>
+            <Ionicons name="chevron-forward" size={20} color={currentTheme.textSecondary} />
           </TouchableOpacity>
         </View>
-
 
         {/* sign out and delete account */}
         <View style={styles.buttonContainer}>
@@ -403,7 +433,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7FAFC'
   },
   header: {
     flexDirection: 'row',
@@ -416,7 +445,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#2D3748',
   },
   contentContainer: {
     flex: 1,
@@ -424,7 +452,6 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   profileCard: {
-    backgroundColor: '#fff',
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',

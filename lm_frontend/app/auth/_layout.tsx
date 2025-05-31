@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 
 
-// auth/_layout.tsx for the authentication flow
+// auth/_layout.tsx - flow-ul pentru autentificare
 
 export default function AuthLayout() {
     const { user, loading } = useAuth();
@@ -27,6 +27,10 @@ export default function AuthLayout() {
     const isVerified = segments[1] === 'emailVerified';
     if (user && !user.emailVerified && !isVerified && !cancelledVerification) {
       return <Redirect href="/auth/emailVerified" />;
+    }
+
+    if (user && user.emailVerified) {
+      return <Redirect href="/" />;
     }
 
     return <Slot />;

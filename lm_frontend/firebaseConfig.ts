@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
@@ -9,13 +9,20 @@ const firebaseConfig = {
   projectId: 'laundrymate-bb74e',
   storageBucket: 'laundrymate-bb74e.appspot.com',
   messagingSenderId: '281434732147',
-  appId: '1:281434732147:android:3f6047f46df4a2580d1c06'
+  appId: '1:281434732147:android:3f6047f46df4a2580d1c06',
 };
 
+// initializing firebase app
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+// initializing firebase auth with persistence
 const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
-const db = getFirestore(app);
 
-export { auth, db };
+export function getFirebaseAuth() {
+  console.log("[DEBUG] getFirebaseAuth:", auth);
+  return auth;
+}
+
+export const db = getFirestore(app);

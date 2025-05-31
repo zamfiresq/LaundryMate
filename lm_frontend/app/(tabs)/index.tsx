@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { auth, db } from '@/firebaseConfig';
+import { getFirebaseAuth, db } from '@/firebaseConfig';
 import { getLaundryTip } from '@/src/utils/chat';
+import { useTheme } from '@/context/ThemeContext';
+import { lightTheme, darkTheme } from '@/constants/theme';
 
 
 // home page - display the last scanned clothes, tip of the day and other useful information
@@ -12,6 +14,9 @@ export default function Home() {
   const [clothes, setClothes] = useState([]);
   const [displayName, setDisplayName] = useState('');
   const [tip, setTip] = useState('');
+  const auth = getFirebaseAuth();
+  const { isDark } = useTheme();
+  const currentTheme = isDark ? darkTheme : lightTheme;
 
 
   // display the current user's name
@@ -44,36 +49,36 @@ export default function Home() {
 
   return (
     // profile button
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: currentTheme.background }]}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Welcome back,</Text>
-          <Text style={[styles.title, styles.userName]}>{displayName || 'User'}</Text>
+          <Text style={[styles.title, { color: currentTheme.textSecondary } ]}>Welcome back,</Text>
+          <Text style={[styles.title, styles.userName, { color: currentTheme.primary }]}>{displayName || 'User'}</Text>
         </View>
         <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
-          <Ionicons name="person-circle-outline" size={50} color="#5bafb5"/>
+          <Ionicons name="person-circle-outline" size={50} color={currentTheme.primary}/>
         </TouchableOpacity>
       </View>
 
       {/* tip of the day */}
       {tip ? (
-        <View style={styles.tipCard}>
-          <View style={styles.tipHeader}>
-            <Ionicons name="bulb-outline" size={24} color="#207278" style={styles.tipIcon} />
-            <Text style={styles.tipTitle}>Tip of the Day</Text>
+        <View style={[styles.tipCard, { backgroundColor: isDark ? currentTheme.card : '#e6f7f9', borderColor: isDark ? currentTheme.border : 'rgba(32, 114, 120, 0.2)' }] }>
+          <View style={[styles.tipHeader, { backgroundColor: isDark ? currentTheme.background : 'rgba(32, 114, 120, 0.1)' }] }>
+            <Ionicons name="bulb-outline" size={24} color={currentTheme.primary} style={styles.tipIcon} />
+            <Text style={[styles.tipTitle, { color: currentTheme.primary }]}>Tip of the Day</Text>
           </View>
-          <Text style={styles.tipText}>{tip}</Text>
+          <Text style={[styles.tipText, { color: currentTheme.textSecondary }]}>{tip}</Text>
         </View>
       ) : null}
 
-      <View style={styles.clothesSection}>
-        <Text style={styles.sectionTitle}>Last scanned clothes</Text>
+      <View style={[styles.clothesSection, { backgroundColor: currentTheme.card }] }>
+        <Text style={[styles.sectionTitle, { color: currentTheme.text } ]}>Last scanned clothes</Text>
         {clothes.length === 0 ? (
           <View style={styles.placeholder}>
             <View style={styles.iconContainer}>
-              <Ionicons name="shirt-outline" size={55} color="#5bafb5" />
+              <Ionicons name="shirt-outline" size={55} color={currentTheme.primary} />
             </View>
-            <Text style={styles.emptyText}>Your scanned clothes will appear here</Text>
+            <Text style={[styles.emptyText, { color: currentTheme.textSecondary }]}>Your scanned clothes will appear here</Text>
             {/* <Text style={styles.emptySubtext}>Start scanning your clothes to see them here</Text> */}
           </View>
         ) : (
@@ -99,7 +104,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 60,
     paddingHorizontal: 24,
-    backgroundColor: '#F7FAFC'
   },
   header: {
     flexDirection: 'row',
