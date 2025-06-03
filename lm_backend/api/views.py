@@ -6,6 +6,8 @@ from .serializers import GarmentSerializer
 import os
 from django.core.files.base import ContentFile
 from django.conf import settings
+from notifications.tasks import send_push_notification
+from PIL import Image 
 import tempfile
 
 # configure the client with the api key from roboflow
@@ -38,6 +40,11 @@ def upload_image(request):
             temp_file.write(chunk)
         temp_path = temp_file.name
 
+    # image resize
+    img = Image.open(temp_path)
+    img = img.resize((1024, 1024))
+    img.save(temp_path)
+
     # sending the image to the roboflow api for inference
     response = CLIENT.infer(temp_path, model_id="care-labels-pmbls/2")
     os.remove(temp_path)  
@@ -50,7 +57,7 @@ def upload_image(request):
     garment.detected_symbols = detected_symbols
     garment.save()
 
-    # Prelucrează simbolurile detectate
+    # prelucreare simboluri detectate
     raw_symbols = detected_symbols or {}
     simboluri = sorted(raw_symbols.items(), key=lambda x: x[1]["confidence"], reverse=True)
     simboluri_top = [s[0] for s in simboluri[:5]]
@@ -60,6 +67,11 @@ def upload_image(request):
     data["material"] = "bumbac"
     data["culoare"] = "alb"
     data["temperatura"] = "40°C" if "40C" in raw_symbols else "30°C"
+
+    # notificare push
+    user_token = request.data.get("token")
+    # if user_token:
+    #     send_push_notification.delay(user_token)
 
     print(data)
     return Response(data)

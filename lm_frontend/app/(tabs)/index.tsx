@@ -7,7 +7,8 @@ import { getFirebaseAuth, db } from '@/firebaseConfig';
 import { getLaundryTip } from '@/src/utils/chat';
 import { useTheme } from '@/context/ThemeContext';
 import { lightTheme, darkTheme } from '@/constants/theme';
-
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
 
 // home page - display the last scanned clothes, tip of the day and other useful information
 export default function Home() {
@@ -17,9 +18,9 @@ export default function Home() {
   const auth = getFirebaseAuth();
   const { isDark } = useTheme();
   const currentTheme = isDark ? darkTheme : lightTheme;
+  const { t, i18n: i18nInstance } = useTranslation();
 
-
-  // display the current user's name
+  // display the current user s first name
   useEffect(() => {
     const fetchDisplayName = async () => {
       const user = auth.currentUser;
@@ -34,12 +35,17 @@ export default function Home() {
     fetchDisplayName();
   }, []);
 
-  // fetch a response from the chat API
+  // fetch a response from the chat api
   useEffect(() => {
-    getLaundryTip("Give me a short and useful laundry tip. Stop using '**' characters").then((response) => {
+    const currentLanguage = i18nInstance.language;
+    const message = currentLanguage === 'ro' 
+      ? "Dă-mi un sfat scurt și util despre spălat. Nu folosi caracterele '**'"
+      : "Give me a short and useful laundry tip. Stop using '**' characters";
+    
+    getLaundryTip(message, currentLanguage).then((response) => {
       setTip(response);
     });
-  }, []);
+  }, [i18nInstance.language]);
 
   // fetch the last scanned clothes from the database
   const renderItem = ({}) => {
@@ -52,8 +58,8 @@ export default function Home() {
     <View style={[styles.container, { backgroundColor: currentTheme.background }]}>
       <View style={styles.header}>
         <View>
-          <Text style={[styles.title, { color: currentTheme.textSecondary } ]}>Welcome back,</Text>
-          <Text style={[styles.title, styles.userName, { color: currentTheme.primary }]}>{displayName || 'User'}</Text>
+          <Text style={[styles.title, { color: currentTheme.textSecondary } ]}>{t('home.welcome')},</Text>
+          <Text style={[styles.title, styles.userName, { color: currentTheme.primary }]}>{displayName || t('home.user')}</Text>
         </View>
         <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
           <Ionicons name="person-circle-outline" size={50} color={currentTheme.primary}/>
@@ -65,21 +71,20 @@ export default function Home() {
         <View style={[styles.tipCard, { backgroundColor: isDark ? currentTheme.card : '#e6f7f9', borderColor: isDark ? currentTheme.border : 'rgba(32, 114, 120, 0.2)' }] }>
           <View style={[styles.tipHeader, { backgroundColor: isDark ? currentTheme.background : 'rgba(32, 114, 120, 0.1)' }] }>
             <Ionicons name="bulb-outline" size={24} color={currentTheme.primary} style={styles.tipIcon} />
-            <Text style={[styles.tipTitle, { color: currentTheme.primary }]}>Tip of the Day</Text>
+            <Text style={[styles.tipTitle, { color: currentTheme.primary }]}>{t('home.tipOfTheDay')}</Text>
           </View>
           <Text style={[styles.tipText, { color: currentTheme.textSecondary }]}>{tip}</Text>
         </View>
       ) : null}
 
       <View style={[styles.clothesSection, { backgroundColor: currentTheme.card }] }>
-        <Text style={[styles.sectionTitle, { color: currentTheme.text } ]}>Last scanned clothes</Text>
+        <Text style={[styles.sectionTitle, { color: currentTheme.text } ]}>{t('home.lastScannedClothes')}</Text>
         {clothes.length === 0 ? (
           <View style={styles.placeholder}>
             <View style={styles.iconContainer}>
               <Ionicons name="shirt-outline" size={55} color={currentTheme.primary} />
             </View>
-            <Text style={[styles.emptyText, { color: currentTheme.textSecondary }]}>Your scanned clothes will appear here</Text>
-            {/* <Text style={styles.emptySubtext}>Start scanning your clothes to see them here</Text> */}
+            <Text style={[styles.emptyText, { color: currentTheme.textSecondary }]}>{t('home.noClothesScanned')}</Text>
           </View>
         ) : (
           <FlatList
@@ -93,7 +98,6 @@ export default function Home() {
     </View>
   );
 }
-
 
 
 

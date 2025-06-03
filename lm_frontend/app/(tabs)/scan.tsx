@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Image, StyleSheet, Alert, TouchableOpacity, Modal, SafeAreaView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
 import { lightTheme, darkTheme } from '@/constants/theme';
+import { useTranslation } from 'react-i18next';
+import * as Notifications from 'expo-notifications';
 
 interface ClothingItem {
   id: string;
@@ -21,6 +23,25 @@ export default function ScanScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const { isDark } = useTheme();
   const currentTheme = isDark ? darkTheme : lightTheme;
+  const { t } = useTranslation();
+  const [expoPushToken, setExpoPushToken] = useState('');
+
+  useEffect(() => {
+    const registerForPushNotificationsAsync = async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission not granted for notifications!');
+        return;
+      }
+
+      const tokenData = await Notifications.getExpoPushTokenAsync();
+      setExpoPushToken(tokenData.data);
+    };
+
+    registerForPushNotificationsAsync();
+  }, []);
+
+  
 
   const analyzeClothingImage = async (imageUri: string): Promise<ClothingItem | null> => {
     try {
@@ -31,7 +52,10 @@ export default function ScanScreen() {
         type: 'image/jpeg',
       } as any);
 
-      const response = await fetch('http://10.10.18.234:8000/api/upload/', { // manual IP 
+      // user token
+      formData.append('token', expoPushToken);
+
+      const response = await fetch('http://192.168.1.152:8000/api/upload/', { // manual IP 
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -53,7 +77,7 @@ export default function ScanScreen() {
       };
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Could not analyze the image.");
+      Alert.alert(t('common.error'), t('scan.scanError'));
       return null;
     }
   };
@@ -78,7 +102,7 @@ export default function ScanScreen() {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (permissionResult.granted === false) {
-      Alert.alert("Permission Required", "Camera permission is needed!");
+      Alert.alert(t('common.error'), t('errors.cameraPermission'));
       return;
     }
 
@@ -97,7 +121,7 @@ export default function ScanScreen() {
   };
 
   const handleDone = () => {
-    Alert.alert('Scan Complete', `You've added ${laundryItems.length} items.`);
+    Alert.alert(t('scan.title'), t('scan.scanComplete', { count: laundryItems.length }));
     console.log('Items:', laundryItems);
   };
 
@@ -118,7 +142,7 @@ export default function ScanScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={currentTheme.primary} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: currentTheme.text }]}>Scan Clothing Label</Text>
+        <Text style={[styles.title, { color: currentTheme.text }]}>{t('scan.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -126,24 +150,24 @@ export default function ScanScreen() {
         <View style={styles.actionsContainer}>
           <TouchableOpacity style={[styles.actionButton, { backgroundColor: currentTheme.primary }]} onPress={handleUploadImage}>
             <Ionicons name="images-outline" size={24} color={currentTheme.buttonText} />
-            <Text style={[styles.actionButtonText, { color: currentTheme.buttonText }]}>Gallery</Text>
+            <Text style={[styles.actionButtonText, { color: currentTheme.buttonText }]}>{t('scan.gallery')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={[styles.actionButton, { backgroundColor: currentTheme.primary }]} onPress={handleTakePhoto}>
             <Ionicons name="camera-outline" size={24} color={currentTheme.buttonText} />
-            <Text style={[styles.actionButtonText, { color: currentTheme.buttonText }]}>Camera</Text>
+            <Text style={[styles.actionButtonText, { color: currentTheme.buttonText }]}>{t('scan.camera')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={[styles.itemsContainer, { backgroundColor: currentTheme.card }] }>
-          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>Scanned Clothes</Text>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>{t('scan.scannedClothes')}</Text>
           
           {laundryItems.length === 0 ? (
             <View style={styles.placeholder}>
               <View style={styles.iconContainer}>
                 <Ionicons name="scan-outline" size={55} color={currentTheme.primary} />
               </View>
-              <Text style={[styles.emptyText, { color: currentTheme.textSecondary }]}>No clothes scanned yet</Text>
+              <Text style={[styles.emptyText, { color: currentTheme.textSecondary }]}>{t('scan.noClothesScanned')}</Text>
             </View>
           ) : (
             <FlatList
@@ -153,10 +177,10 @@ export default function ScanScreen() {
                 <View style={[styles.itemCard, { backgroundColor: currentTheme.card, borderColor: currentTheme.border }] }>
                   <Image source={{ uri: item.image }} style={styles.itemImage} />
                   <View style={styles.itemDetails}>
-                    <Text style={[styles.itemLabel, { color: currentTheme.text }]}>Material: {item.material || 'N/A'}</Text>
-                    <Text style={[styles.itemLabel, { color: currentTheme.text }]}>Color: {item.culoare || 'N/A'}</Text>
-                    <Text style={[styles.itemLabel, { color: currentTheme.text }]}>Temperature: {item.temperatura || 'N/A'}</Text>
-                    <Text style={[styles.itemLabel, { color: currentTheme.text }]}>Symbols: {Array.isArray(item.simboluri) ? item.simboluri.join(', ') : 'N/A'}</Text>
+                    <Text style={[styles.itemLabel, { color: currentTheme.text }]}>{t('scan.material')}: {item.material || 'N/A'}</Text>
+                    <Text style={[styles.itemLabel, { color: currentTheme.text }]}>{t('scan.color')}: {item.culoare || 'N/A'}</Text>
+                    <Text style={[styles.itemLabel, { color: currentTheme.text }]}>{t('scan.temperature')}: {item.temperatura || 'N/A'}</Text>
+                    <Text style={[styles.itemLabel, { color: currentTheme.text }]}>{t('scan.symbols')}: {Array.isArray(item.simboluri) ? item.simboluri.join(', ') : 'N/A'}</Text>
                   </View>
                 </View>
               )}
@@ -167,7 +191,7 @@ export default function ScanScreen() {
         
         {laundryItems.length > 0 && (
           <TouchableOpacity style={[styles.doneButton, { backgroundColor: currentTheme.primary }]} onPress={sendToGemini}>
-            <Text style={[styles.doneButtonText, { color: currentTheme.buttonText }]}>Finish Scanning</Text>
+            <Text style={[styles.doneButtonText, { color: currentTheme.buttonText }]}>{t('scan.finishScanning')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -176,14 +200,14 @@ export default function ScanScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: currentTheme.card }] }>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: currentTheme.text }]}>AI Suggestion</Text>
+              <Text style={[styles.modalTitle, { color: currentTheme.text }]}>{t('scan.aiSuggestion')}</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color={currentTheme.primary} />
               </TouchableOpacity>
             </View>
             <Text style={[styles.modalText, { color: currentTheme.textSecondary }]}>{aiResponse}</Text>
             <TouchableOpacity style={[styles.modalButton, { backgroundColor: currentTheme.primary }]} onPress={() => setModalVisible(false)}>
-              <Text style={[styles.modalButtonText, { color: currentTheme.buttonText }]}>Close</Text>
+              <Text style={[styles.modalButtonText, { color: currentTheme.buttonText }]}>{t('common.close')}</Text>
             </TouchableOpacity>
           </View>
         </View>

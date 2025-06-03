@@ -95,12 +95,30 @@ export default function ProfileScreen() {
 
   // change language (ro / en)
   const handleLanguageSelect = async (languageId: string) => {
-    setSelectedLanguage(languageId);
-    setIsLanguageModalVisible(false);
-    
     try {
+      setSelectedLanguage(languageId);
+      setIsLanguageModalVisible(false);
+      
+      // Salvează limba în AsyncStorage
+      await AsyncStorage.setItem('language', languageId);
+      
+      // Schimbă limba în i18n
       await i18n.changeLanguage(languageId);
-      Alert.alert(t('common.success'), t('profile.languageUpdated'));
+      
+      // Forțează reîncărcarea aplicației
+      Alert.alert(
+        t('common.success'),
+        t('profile.languageUpdated'),
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Reîncarcă aplicația
+              router.replace('/');
+            }
+          }
+        ]
+      );
     } catch (error) {
       console.error('Error changing language:', error);
       Alert.alert(t('common.error'), t('errors.general'));
@@ -179,7 +197,6 @@ export default function ProfileScreen() {
         return;
       }
 
-      // Validări de bază
       if (!editedData.firstName.trim() || !editedData.lastName.trim()) {
         Alert.alert(t('common.error'), t('profile.nameRequired'));
         return;
@@ -200,7 +217,7 @@ export default function ProfileScreen() {
 
       await updateDoc(userRef, updateData);
 
-      // Actualizăm și email-ul în Firebase Auth dacă s-a schimbat
+      // actualizare email in firebase auth
       if (user.email !== editedData.email) {
         try {
           await updateEmail(user, editedData.email);
@@ -264,7 +281,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.settingItem}>
             <Ionicons name="key-outline" size={22} color={currentTheme.primary} />
-            <Text style={[styles.settingText, { color: currentTheme.text }]}>Change Password</Text>
+            <Text style={[styles.settingText, { color: currentTheme.text }]}>{t('profile.changePassword')}</Text>
             <Ionicons name="chevron-forward" size={20} color={currentTheme.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.settingItem}>
@@ -301,7 +318,7 @@ export default function ProfileScreen() {
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
             <Ionicons name="log-out-outline" size={20} color="#fff" style={styles.buttonIcon} />
-            <Text style={styles.signOutText}>Log Out</Text>
+            <Text style={styles.signOutText}>{t('auth.signOut')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.deleteButton} onPress={showDeleteConfirmation}>
@@ -374,8 +391,6 @@ export default function ProfileScreen() {
         </TouchableWithoutFeedback>
       </Modal>
 
-
-
       {/* language selection modal */}
       <Modal
         visible={isLanguageModalVisible}
@@ -439,8 +454,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingTop: 10,
     paddingBottom: 20,
+    marginBottom: -1,
   },
   headerTitle: {
     fontSize: 24,
@@ -455,7 +471,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -463,7 +479,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   avatarContainer: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   avatarCircle: {
     width: 100,
@@ -494,7 +510,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 20,
     padding: 20,
-    marginBottom: 24,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

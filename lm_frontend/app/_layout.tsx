@@ -11,7 +11,10 @@ import '../i18n';
 import { useColorScheme } from '../hooks/useColorScheme';
 import { useAuth } from '../hooks/useAuth';
 import { ThemeProvider as CustomThemeProvider } from '@/context/ThemeContext';
-
+import { registerForPushNotificationsAsync } from '@/src/utils/notifications';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/firebaseConfig';
+import * as Notifications from 'expo-notifications';
 
 // layout for root stack -> global stack
 // prevent the splash screen from auto-hiding before asset loading is complete.
@@ -31,6 +34,34 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  // push notifications
+  useEffect(() => {
+    const setupNotifications = async () => {
+      if (!user) return;
+      const token = await registerForPushNotificationsAsync();
+      if (token) {
+        await setDoc(doc(db, 'users', user.uid), {
+          fcmToken: token,
+        }, { merge: true });
+      }
+    };
+  
+    setupNotifications();
+  }, [user]);
+
+  // notification handler
+  useEffect(() => {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  }, []);
 
   useEffect(() => {
     const sub = Linking.addEventListener('url', ({ url }) => {

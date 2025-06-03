@@ -14,16 +14,16 @@ export const lightTheme = {
 };
 
 export const darkTheme = {
-  primary: '#5bafb5',
-  background: '#1A202C',
-  card: '#2D3748',
-  text: '#F7FAFC',
-  textSecondary: '#A0AEC0',
+  primary: '#448387',
+  background: '#1a1e26',
+  card: '#2c333b',
+  text: '#dce0e3',
+  textSecondary: '#dce0e3',
   border: '#4A5568',
   error: '#FC8181',
   success: '#68D391',
   shadow: '#000000',
-  inputBackground: '#2D3748',
+  inputBackground: '#1a1e26',
   buttonText: '#FFFFFF',
-  avatarBackground: '#2D3748',
+  avatarBackground: '#2c333b',
 }; 

@@ -1,10 +1,11 @@
 from pathlib import Path
 import environ
 import os
+import sys
 
 # initialize the environment variables
 env = environ.Env()
-environ.Env.read_env(os.path.join(Path(__file__).resolve().parent.parent, ".env"))
+environ.Env.read_env(Path(__file__).resolve().parent.parent.parent / ".env")
 
 ROBOFLOW_API_KEY = env("ROBOFLOW_API_KEY", default=None)
 
@@ -15,6 +16,7 @@ if ROBOFLOW_API_KEY is None:
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BASE_DIR / "api"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -38,7 +40,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "api",  
     "rest_framework",  
+    "django_celery_beat",
+    "notifications",
 ]
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -127,3 +132,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # media 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+# celery
+CELERY_BROKER_URL = env("CELERY_BROKER_URL")
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"

@@ -39,6 +39,10 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffdbd8"
     },
+    "notification": {
+      "icon": "./assets/images/LaundryMateIcon1.png",
+      "color": "#ffdbd8"
+    },
     "entryPoint": "./src/screens/LoadingScreen.tsx",
     "plugins": [
       [
