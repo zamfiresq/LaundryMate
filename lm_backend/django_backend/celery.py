@@ -10,10 +10,10 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.conf.broker_url = os.getenv('CELERY_BROKER_URL')
 app.autodiscover_tasks()
 
-# ✅ Celery Beat schedule
+app.conf.timezone = 'Europe/Bucharest'
 app.conf.beat_schedule = {
     'check-inactive-users-every-day': {
-        'task': 'notifications.tasks.send_reminder_to_inactive_users',
+        'task': 'notifications.tasks.send_inactive_users_notifications',
         'schedule': crontab(hour=10, minute=0),  # daily at 10 am 
     },
 }

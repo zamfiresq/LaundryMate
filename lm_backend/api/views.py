@@ -1,3 +1,7 @@
+from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
+from model.yolo_inference import predict_yolo  
+import tempfile
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from inference_sdk import InferenceHTTPClient
@@ -6,7 +10,6 @@ from .serializers import GarmentSerializer
 import os
 from django.core.files.base import ContentFile
 from django.conf import settings
-from notifications.tasks import send_push_notification
 from PIL import Image 
 import tempfile
 
@@ -75,3 +78,27 @@ def upload_image(request):
 
     print(data)
     return Response(data)
+
+
+# YOLOv8n integration 
+class YoloPredictView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request, *args, **kwargs):
+        image_file = request.data.get('image')
+        if not image_file:
+            return Response({'error': 'No image provided'}, status=400)
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+            for chunk in image_file.chunks():
+                temp_file.write(chunk)
+            temp_path = temp_file.name
+
+        try:
+            predictions = predict_yolo(temp_path)
+            return Response({'predictions': predictions})
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)

@@ -17,6 +17,63 @@ interface ClothingItem {
   simboluri: string[];
 }
 
+const getDetailsFromSymbols = (symbols: string[]) => {
+  let temperatura = 'N/A';
+  let material = 'N/A';
+  let culoare = 'N/A';
+
+  const normalize = (s: string | undefined) =>
+    s ? s.toLowerCase().replace(/[\s_]/g, '').trim() : '';
+
+  const norm = symbols.filter(Boolean).map(normalize);
+
+  const temperatureMap: Record<string, string> = {
+    '30c': '30°C',
+    '40c': '40°C',
+    '50c': '50°C',
+    '60c': '60°C',
+    '90c': '90°C',
+  };
+
+  const materialMap: Record<string, string> = {
+    'handwash': 'delicate',
+    'donotdryclean': 'sintetic',
+    'dryclean': 'bumbac',
+  };
+
+  const colorMap: Record<string, string> = {
+    'donotbleach': 'colorat',
+    'bleach': 'alb',
+  };
+
+  for (const key in temperatureMap) {
+    if (norm.includes(key)) {
+      temperatura = temperatureMap[key];
+      break;
+    }
+  }
+
+  for (const key in materialMap) {
+    if (norm.includes(key)) {
+      material = materialMap[key];
+      break;
+    }
+  }
+
+  for (const key in colorMap) {
+    if (norm.includes(key)) {
+      culoare = colorMap[key];
+      break;
+    }
+  }
+
+  console.log('Details parsed ->', { temperatura, material, culoare });
+
+  return { temperatura, material, culoare };
+};
+
+
+
 export default function ScanScreen() {
   const [laundryItems, setLaundryItems] = useState<ClothingItem[]>([]);
   const [aiResponse, setAiResponse] = useState('');
@@ -52,10 +109,7 @@ export default function ScanScreen() {
         type: 'image/jpeg',
       } as any);
 
-      // user token
-      formData.append('token', expoPushToken);
-
-      const response = await fetch('http://192.168.1.152:8000/api/upload/', { // manual IP 
+      const response = await fetch('http://192.168.100.113:8000/api/detect-symbols/', {
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -63,17 +117,27 @@ export default function ScanScreen() {
         body: formData,
       });
 
-      if (!response.ok) throw new Error('Error analyzing image');
+      if (!response.ok) throw new Error('YOLOv8 prediction failed');
 
-      const data = await response.json();
+      const data = await response.json(); // array of detections
+      console.log('YOLOv8 Response:', data); // log pentru debugging
+
+      const predictionsArray = Array.isArray(data.predictions)
+        ? data.predictions
+        : (Array.isArray(data?.predictions?.predictions) ? data.predictions.predictions : []);
+      console.log('Predictions array:', predictionsArray);
+      const detectedSymbols = predictionsArray.map((item: any) => item.label).filter(Boolean);
+      console.log('Detected symbol names:', detectedSymbols);
+
+      const { temperatura, material, culoare } = getDetailsFromSymbols(detectedSymbols);
 
       return {
         id: Date.now().toString(),
         image: imageUri,
-        material: data.material,
-        culoare: data.culoare,
-        temperatura: data.temperatura,
-        simboluri: data.simboluri,
+        material,
+        culoare,
+        temperatura,
+        simboluri: detectedSymbols,
       };
     } catch (error) {
       console.error(error);
@@ -158,6 +222,7 @@ export default function ScanScreen() {
             <Text style={[styles.actionButtonText, { color: currentTheme.buttonText }]}>{t('scan.camera')}</Text>
           </TouchableOpacity>
         </View>
+
 
         <View style={[styles.itemsContainer, { backgroundColor: currentTheme.card }] }>
           <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>{t('scan.scannedClothes')}</Text>

@@ -1,4 +1,4 @@
-Django>=5.1
+Django>=4.1
 djangorestframework
 django-environ
 python-dotenv
@@ -8,3 +8,7 @@ google-generativeai
 firebase-admin
 pillow
 requests
+whitenoise
+ultralytics>=8.0.20
+torch>=2.0.0
+opencv-python

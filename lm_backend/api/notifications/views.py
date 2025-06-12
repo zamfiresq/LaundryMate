@@ -2,6 +2,7 @@ import requests
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from notifications.tasks import test_push_notification
 
 @api_view(['POST'])
 def send_test_notification(request):

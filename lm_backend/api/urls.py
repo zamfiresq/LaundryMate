@@ -1,5 +1,5 @@
 from django.urls import path, include
-from .views import upload_image, get_garments
+from .views import upload_image, get_garments, YoloPredictView
 from django.http import JsonResponse
 
 def test_view(request):
@@ -12,4 +12,6 @@ urlpatterns = [
     path('garments/', get_garments, name='get-garments'),
     path('chat/', include('api.chat.urls')),
     path('notifications/', include('api.notifications.urls')),
+    path('detect-symbols/', YoloPredictView.as_view(), name='detect-symbols'),
+    
 ]
