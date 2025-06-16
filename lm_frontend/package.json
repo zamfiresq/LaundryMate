@@ -20,6 +20,7 @@
     "@react-native-firebase/app": "^21.14.0",
     "@react-native-firebase/auth": "^21.14.0",
     "@react-native-firebase/firestore": "^21.14.0",
+    "@react-native-picker/picker": "^2.11.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.15",
     "@react-navigation/stack": "^7.1.2",
@@ -36,6 +37,7 @@
     "expo-linking": "~7.1.5",
     "expo-localization": "~16.1.5",
     "expo-modules-autolinking": "~2.1.0",
+    "expo-notifications": "~0.31.2",
     "expo-router": "~5.0.7",
     "expo-splash-screen": "~0.30.8",
     "expo-status-bar": "~2.2.3",
@@ -56,8 +58,7 @@
     "react-native-splash-screen": "^3.3.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "^0.20.0",
-    "react-native-webview": "13.13.5",
-    "expo-notifications": "~0.31.2"
+    "react-native-webview": "13.13.5"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",

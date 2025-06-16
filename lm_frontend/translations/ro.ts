@@ -13,6 +13,8 @@ export default {
     back: 'Înapoi',
     next: 'Următorul',
     done: 'Gata',
+    reuse: 'Reutilizare',
+    reuseCustomization: 'Funcționalitatea de reutilizare poate fi personalizată.',
   },
   auth: {
     login: 'Autentificare',
@@ -55,6 +57,12 @@ export default {
     lastScannedClothes: 'Ultimele Haine Scanate',
     noClothesScanned: 'Hainele tale scanate vor apărea aici',
     startScanning: 'Începe să scanezi hainele tale',
+    lastRecommendation: 'Ultima Recomandare',
+    program: 'Program',
+    reuseRecommendation: 'Refolosește Recomandarea',
+    personalStats: 'Statistici Personale',
+    sessions: 'Sesiuni',
+    clothesScanned: 'Haine Scanate',
   },
   scan: {
     title: 'Scanează Eticheta Hainei',

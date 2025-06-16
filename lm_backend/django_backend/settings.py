@@ -7,12 +7,6 @@ import sys
 env = environ.Env()
 environ.Env.read_env(Path(__file__).resolve().parent.parent.parent / ".env")
 
-ROBOFLOW_API_KEY = env("ROBOFLOW_API_KEY", default=None)
-
-if ROBOFLOW_API_KEY is None:
-    raise Exception("ROBOFLOW_API_KEY is not set! Check your .env file.")
-
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

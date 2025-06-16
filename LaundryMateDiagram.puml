@@ -27,7 +27,7 @@ System_Boundary(laundrymate, "LaundryMate System") {
   ' EXTERNAL AI SERVICES
   Container(ai, "AI Services", "Third-Party APIs", "External AI services for detection and recommendations", "external-ai") {
     Container(gemini, "Gemini API", "Text Generation", "Provides washing program tips", "external-ai")
-    Container(roboflow, "Roboflow API", "YOLOv8n", "Detects washing symbols from uploaded images", "external-ai")
+    Container(roboflow, "YOLOv8n","", "Detects washing symbols from uploaded images", "external-ai")
   }
 }
 

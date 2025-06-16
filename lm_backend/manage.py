@@ -2,14 +2,6 @@
 
 import os
 import sys
-import environ           # for reading environment variables from .env file
-
-# read the environment variables from the .env file
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-env = environ.Env()
-environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
-
-ROBOFLOW_API_KEY = env("ROBOFLOW_API_KEY")
 
 
 def main():

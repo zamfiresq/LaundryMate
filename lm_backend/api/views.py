@@ -4,7 +4,6 @@ from model.yolo_inference import predict_yolo
 import tempfile
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from inference_sdk import InferenceHTTPClient
 from .models import Garment
 from .serializers import GarmentSerializer
 import os
@@ -13,16 +12,10 @@ from django.conf import settings
 from PIL import Image 
 import tempfile
 
-# configure the client with the api key from roboflow
-CLIENT = InferenceHTTPClient(
-    api_url="https://detect.roboflow.com",
-    api_key=os.environ.get("ROBOFLOW_API_KEY")
-)
-
 # get request to retrieve all garments
 @api_view(['GET'])
 def get_garments(request):
-    """API endpoint for retrieving all garments"""
+    #API endpoint for retrieving all garments
     garments = Garment.objects.all().order_by('-created_at')
     serializer = GarmentSerializer(garments, many=True)
     print(serializer.data)
@@ -31,7 +24,7 @@ def get_garments(request):
 # post request to upload an image
 @api_view(['POST'])
 def upload_image(request):
-    """API endpoint for uploading an image and detecting care symbols using Roboflow"""
+    #API endpoint for uploading an image and detecting care symbols using YOLOv8
     image = request.FILES.get('image')
     
     if not image:
@@ -48,11 +41,8 @@ def upload_image(request):
     img = img.resize((1024, 1024))
     img.save(temp_path)
 
-    # sending the image to the roboflow api for inference
-    response = CLIENT.infer(temp_path, model_id="care-labels-pmbls/2")
-    os.remove(temp_path)  
-
-    detected_symbols = response.get("predictions", []) 
+    detected_symbols = predict_yolo(temp_path)
+    os.remove(temp_path)
 
     # save the garment to the database
     garment = Garment()
@@ -60,16 +50,13 @@ def upload_image(request):
     garment.detected_symbols = detected_symbols
     garment.save()
 
-    # prelucreare simboluri detectate
-    raw_symbols = detected_symbols or {}
-    simboluri = sorted(raw_symbols.items(), key=lambda x: x[1]["confidence"], reverse=True)
-    simboluri_top = [s[0] for s in simboluri[:5]]
+    simboluri_top = [s["label"] for s in sorted(detected_symbols, key=lambda x: x["confidence"], reverse=True)[:5]]
 
     data = GarmentSerializer(garment).data
     data["simboluri"] = simboluri_top
     data["material"] = "bumbac"
     data["culoare"] = "alb"
-    data["temperatura"] = "40°C" if "40C" in raw_symbols else "30°C"
+    data["temperatura"] = "40°C" if "40C" in detected_symbols else "30°C"
 
     # notificare push
     user_token = request.data.get("token")

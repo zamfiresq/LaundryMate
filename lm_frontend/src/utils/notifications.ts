@@ -19,7 +19,7 @@ export async function registerForPushNotificationsAsync() {
     }
   
     token = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log("✅ Expo Push Token:", token);
+    console.log("Expo Push Token:", token);
   
     return token;
   }
