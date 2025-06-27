@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Image, StyleSheet, Alert, TouchableOpacity, Modal, SafeAreaView } from 'react-native';
+import { View, Text, FlatList, Image, StyleSheet, Alert, TouchableOpacity, Modal, SafeAreaView, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -8,21 +8,21 @@ import { lightTheme, darkTheme } from '@/constants/theme';
 import { useTranslation } from 'react-i18next';
 import * as Notifications from 'expo-notifications';
 import { Picker } from '@react-native-picker/picker';
-import { groupCompatibleItems, getMaterialCategory, getColorGroup, getTemperatureCategory } from '@/src/utils/laundryRules';
 import { getFirebaseAuth, db } from '@/firebaseConfig';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { 
+  groupCompatibleItems, 
+  getMaterialCategory, 
+  getColorGroup, 
+  getTemperatureCategory,
+  getTextualRecommendation,
+  generateGroupRecommendation,
+  type ClothingItem,
+  type GroupingResult
+} from '@/src/utils/laundryRules';
 
-interface ClothingItem {
-  id: string;
-  image: string;
-  material: string;
-  culoare: string;
-  temperatura: string;
-  simboluri: string[];
-  materialManual?: string;
-  culoareManual?: string;
-}
 
+// extragerea detaliilor din simboluri
 const getDetailsFromSymbols = (symbols: string[]) => {
   let temperatura = 'N/A';
   let material = 'N/A';
@@ -41,6 +41,7 @@ const getDetailsFromSymbols = (symbols: string[]) => {
     '90c': '90°C',
   };
 
+  // maparea simbolurilor la material si culoare
   const materialMap: Record<string, string> = {
     'handwash': 'delicate',
     'donotdryclean': 'sintetic',
@@ -73,22 +74,20 @@ const getDetailsFromSymbols = (symbols: string[]) => {
     }
   }
 
-  console.log('Details parsed ->', { temperatura, material, culoare });
-
   return { temperatura, material, culoare };
 };
 
 
-
+// ecranul de scanare
 export default function ScanScreen() {
   const [laundryItems, setLaundryItems] = useState<ClothingItem[]>([]);
-  const [aiResponse, setAiResponse] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const { isDark } = useTheme();
   const currentTheme = isDark ? darkTheme : lightTheme;
   const { t } = useTranslation();
   const [expoPushToken, setExpoPushToken] = useState('');
-  // Modal selection state
+  
+  // modal pt selectarea materialului si culorii
   const [selectedMaterialItem, setSelectedMaterialItem] = useState<ClothingItem | null>(null);
   const [selectedColorItem, setSelectedColorItem] = useState<ClothingItem | null>(null);
   const [materialModalVisible, setMaterialModalVisible] = useState(false);
@@ -99,6 +98,7 @@ export default function ScanScreen() {
   const auth = getFirebaseAuth();
 
   useEffect(() => {
+    // permisiuni pt notificari
     const registerForPushNotificationsAsync = async () => {
       const { status } = await Notifications.requestPermissionsAsync();
       if (status !== 'granted') {
@@ -113,16 +113,16 @@ export default function ScanScreen() {
     registerForPushNotificationsAsync();
   }, []);
 
+  // efect pt a deschide camera automat
   useEffect(() => {
-    console.log('openCamera param:', openCamera);
+    // console.log('openCamera param:', openCamera);
     if (openCamera === 'true') {
-      console.log('Calling handleTakePhoto...');
+      // console.log('Calling handleTakePhoto...');
       handleTakePhoto();
     }
   }, [openCamera]);
 
-  
-
+ // functie pt trimiterea imaginilor catre backend pt analiza
   const analyzeClothingImage = async (imageUri: string): Promise<ClothingItem | null> => {
     try {
       const formData = new FormData();
@@ -132,7 +132,8 @@ export default function ScanScreen() {
         type: 'image/jpeg',
       } as any);
 
-      const response = await fetch('http://192.168.100.113:8000/api/detect-symbols/', {
+      // trimitere catre backend pentru detectarea simbolurilor
+      const response = await fetch('http://192.168.100.119:8000/api/detect-symbols/', {
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -142,8 +143,8 @@ export default function ScanScreen() {
 
       if (!response.ok) throw new Error('YOLOv8 prediction failed');
 
-      const data = await response.json(); // array of detections
-      console.log('YOLOv8 Response:', data); // log pentru debugging
+      const data = await response.json();
+      console.log('YOLOv8 Response:', data);
 
       const predictionsArray = Array.isArray(data.predictions)
         ? data.predictions
@@ -164,6 +165,7 @@ export default function ScanScreen() {
         simboluri: detectedSymbols,
         materialManual: material,
         culoareManual: culoare,
+        nume: `Haina ${laundryItems.length + 1}`
       };
     } catch (error) {
       console.error(error);
@@ -172,9 +174,10 @@ export default function ScanScreen() {
     }
   };
 
+  // functie pentru incarcarea imaginilor din galerie
   const handleUploadImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: 'images',
       allowsEditing: false,
       quality: 1,
       allowsMultipleSelection: true,
@@ -185,12 +188,19 @@ export default function ScanScreen() {
         const imageUri = asset.uri;
         const item = await analyzeClothingImage(imageUri);
         if (item) {
-          setLaundryItems(prev => [...prev, item]);
+          setLaundryItems(prev => [
+            ...prev,
+            {
+              ...item,
+              nume: `Haina ${prev.length + 1}`
+            }
+          ]);
         }
       }
     }
   };
 
+  // functie pt a face poza cu camera
   const handleTakePhoto = async () => {
     console.log('handleTakePhoto called.');
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
@@ -209,112 +219,376 @@ export default function ScanScreen() {
       const imageUri = result.assets[0].uri;
       const item = await analyzeClothingImage(imageUri);
       if (item) {
-        setLaundryItems(prev => [...prev, item]);
+        setLaundryItems(prev => [
+          ...prev,
+          {
+            ...item,
+            nume: `Haina ${prev.length + 1}`
+          }
+        ]);
       }
     }
   };
 
-  const handleDone = () => {
-    Alert.alert(t('scan.title'), t('scan.scanComplete', { count: laundryItems.length }));
-    console.log('Items:', laundryItems);
+  // modal pentru selectarea materialului
+  const getGroupRecommendation = (group: ClothingItem[]): string => {
+    const profile = generateGroupRecommendation(group);
+    
+    let recommendation = `Program: ${profile.program}\n`;
+    recommendation += `Temperatură: ${profile.temperature}\n`;
+    recommendation += `Centrifugare: ${profile.spinSpeed} rpm\n`;
+    recommendation += `Durată: ${profile.washTime} minute\n`;
+    recommendation += `Detergent: ${profile.detergentType}`;
+    
+    return recommendation;
   };
 
-  const getGroupRecommendation = (group: any[]): string => {
-    // exemplu simplu de recomandare pe grup
-    const material = getMaterialCategory(group[0].materialManual || group[0].material || '');
-    const color = getColorGroup(group[0].culoareManual || group[0].culoare || '');
-    const temp = group[0].temperatura || getTemperatureCategory(group[0].simboluri || []);
-    let program = '';
-    if (material === 'cotton' && color === 'white' && temp === '60C') {
-      program = 'Bumbac alb 60°C, 1000 rpm, detergent pentru alb';
-    } else if (material === 'cotton' && color !== 'white' && temp === '40C') {
-      program = 'Bumbac colorat 40°C, 800 rpm, detergent color';
-    } else if (material === 'synthetic') {
-      program = 'Sintetice 40°C, 800 rpm, detergent universal';
-    } else if (material === 'delicate') {
-      program = 'Delicate 30°C, 600 rpm, detergent delicat';
-    } else if (material === 'wool') {
-      program = 'Lână 30°C, 600 rpm, program lână';
-    } else {
-      program = 'Program mixt 40°C, 800 rpm, detergent universal';
-    }
-    return program;
-  };
 
   const renderRecommendationModal = () => {
-    const lines = manualRecommendation.split('\n').filter(Boolean);
-    let currentGroup = 0;
-    return (
-      <View>
-        {lines.map((line, idx) => {
-          if (line.startsWith('Grupul')) {
-            currentGroup++;
-            return (
-              <View key={idx} style={{ marginBottom: 16, marginTop: idx !== 0 ? 12 : 0 }}>
-                <Text style={{ fontWeight: '700', fontSize: 17, color: currentTheme.primary }}>{line}</Text>
-              </View>
-            );
-          }
-          if (line.startsWith('Recomandare:')) {
-            return (
-              <Text key={idx} style={{ color: '#207278', fontWeight: '600', marginBottom: 8, fontSize: 15 }}>{line}</Text>
-            );
-          }
-          return (
-            <Text key={idx} style={{ marginLeft: 10, fontSize: 15, color: currentTheme.text }}>{line}</Text>
-          );
-        })}
-      </View>
-    );
-  };
-
-  const saveToHistory = async (groups: any[][]) => {
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
-      for (const group of groups) {
-        await addDoc(collection(db, 'users', user.uid, 'garments'), {
-          items: group.map((item: any) => ({
-            id: item.id,
-            material: item.materialManual || item.material,
-            culoare: item.culoareManual || item.culoare,
-            temperatura: item.temperatura,
-            simboluri: item.simboluri,
-            image: item.image,
-          })),
-          program: getGroupRecommendation(group),
-          created_at: serverTimestamp(),
-        });
-      }
-    } catch (e) {
-      Alert.alert('Eroare', 'Nu s-a putut salva în istoric.');
+  // procesare text pt a corecta singular/plural
+  const processedRecommendation = manualRecommendation.replace(
+    /Grupul (\d+) \((\d+) articole\):/g, 
+    (match, groupNumber, itemCount) => {
+      const count = parseInt(itemCount);
+      const articleWord = count === 1 ? 'articol' : 'articole';
+      return `Grupul ${groupNumber} (${count} ${articleWord}):`;
     }
-  };
+  );
 
+  const groupBlocks = processedRecommendation.split(/(Grupul \d+ \(\d+ articole?\):)/g).filter(Boolean);
+  
+  return (
+    <ScrollView
+      style={{ maxHeight: '92%' }}
+      contentContainerStyle={{ paddingBottom: 16 }}
+      showsVerticalScrollIndicator={true}
+    >
+      {groupBlocks.map((block, idx) => {
+        if (block.startsWith('Grupul')) {
+          return (
+            <View key={idx} style={{ marginTop: idx !== 0 ? 20 : 0, marginBottom: 8 }}>
+              <Text style={{ fontWeight: '700', fontSize: 18, color: currentTheme.primary, letterSpacing: 0.2 }}>{block}</Text>
+            </View>
+          );
+        } else {
+          const lines = block.split('\n').filter(Boolean);
+          const articleLines = lines.filter(l => l.trim().startsWith('• Haina'));
+          const recIndex = lines.findIndex(l => l.trim().startsWith('Recomandare spălare:'));
+          const recLines = recIndex !== -1 ? lines.slice(recIndex) : [];
+
+          // parsarea sfaturilor speciale
+          const tipsIndex = lines.findIndex(l => l.trim().startsWith('• Sfaturi speciale:'));
+          let specialTips: string[] = [];
+          if (tipsIndex !== -1) { 
+            specialTips = lines.slice(tipsIndex + 1)
+              .filter(line => line.trim().startsWith('- '))
+              .map(line => line.trim().replace(/^- /, ''));
+          }
+
+          return (
+            <View
+              key={idx}
+              style={{
+                backgroundColor: currentTheme.cardSecondary,
+                borderRadius: 14,
+                padding: 14,
+                marginBottom: 18,
+                shadowColor: '#000',
+                shadowOpacity: 0.06,
+                shadowRadius: 3,
+                elevation: 2,
+                borderWidth: 1,
+                borderColor: currentTheme.border,
+              }}
+            >
+              {/* lista articole */}
+              <View style={{ marginBottom: 16 }}>
+                {articleLines.map((art, i) => {
+                  const cleanText = art.replace(/^•\s*/, ''); 
+                  const itemName = cleanText.split(':')[0].trim();
+                  const match = art.match(/: (.*?), (.*?),/);
+                  const material = match ? match[1] : '';
+                  const culoare = match ? match[2] : '';
+                  
+                  return (
+                    <View key={i} style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      marginBottom: 10,
+                      paddingVertical: 8,
+                    }}>
+                      {/* nume haina */}
+                      <Text style={{ 
+                        fontSize: 16, 
+                        color: currentTheme.primary, 
+                        fontWeight: '600',
+                        flex: 1,
+                        marginRight: 12,
+                      }}>
+                        {itemName}
+                      </Text>
+
+                      {/* badge material */}
+                      {material && (
+                        <View style={{ 
+                          backgroundColor: '#e3f2fd',
+                          borderRadius: 12,
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                          marginRight: 8,
+                          borderWidth: 1,
+                          borderColor: '#bbdefb',
+                        }}>
+                          <Text style={{ 
+                            fontSize: 12, 
+                            color: '#1565c0', 
+                            fontWeight: '600',
+                            textTransform: 'capitalize'
+                          }}>
+                            {material.toLowerCase()}
+                          </Text>
+                        </View>
+                      )}
+
+                      {/* badge culoare */}
+                      {culoare && (
+                        <View style={{ 
+                          backgroundColor: '#fff3e0',
+                          borderRadius: 12,
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                          borderWidth: 1,
+                          borderColor: '#ffcc80',
+                        }}>
+                          <Text style={{ 
+                            fontSize: 12, 
+                            color: '#e65100', 
+                            fontWeight: '600',
+                            textTransform: 'capitalize'
+                          }}>
+                            {culoare.toLowerCase()}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+              
+              {/* recomandare */}
+              <View style={{ borderTopWidth: 1, borderTopColor: currentTheme.border, paddingTop: 10, marginBottom: 8 }}>
+                <Text style={{ fontWeight: '700', color: currentTheme.text, fontSize: 16, marginBottom: 10 }}>
+                  Recomandare spălare:
+                </Text>
+                
+                {recLines.map((rec, i) => {
+                  if (i === 0 || rec.trim().startsWith('• Sfaturi speciale:') || rec.trim().startsWith('- ')) {
+                    return null;
+                  }
+                  
+                  const [label, ...rest] = rec.split(':');
+                  const value = rest.join(':').trim();
+                  let icon = null;
+                  let badgeColor = '#e0f7fa';
+                  let badgeTextColor = '#207278';
+                  
+                  if (label.startsWith('Program')) {
+                    icon = <Ionicons name="shirt-outline" size={16} color={currentTheme.primary} style={{ marginRight: 4 }} />;
+                    badgeColor = '#e0f7fa'; badgeTextColor = '#207278';
+                  }
+                  if (label.startsWith('Temperatură')) {
+                    icon = <Ionicons name="thermometer-outline" size={16} color="#e57373" style={{ marginRight: 4 }} />;
+                    badgeColor = '#ffe0b2'; badgeTextColor = '#b26a00';
+                  }
+                  if (label.startsWith('Viteză centrifugare')) {
+                    icon = <Ionicons name="sync-outline" size={16} color="#64b5f6" style={{ marginRight: 4 }} />;
+                    badgeColor = '#bbdefb'; badgeTextColor = '#1976d2';
+                  }
+                  if (label.startsWith('Timp spălare')) {
+                    icon = <Ionicons name="time-outline" size={16} color="#81c784" style={{ marginRight: 4 }} />;
+                    badgeColor = '#c8e6c9'; badgeTextColor = '#388e3c';
+                  }
+                  if (label.startsWith('Detergent')) {
+                    icon = <Ionicons name="flask-outline" size={16} color="#ffd54f" style={{ marginRight: 4 }} />;
+                    badgeColor = '#fff9c4'; badgeTextColor = '#fbc02d';
+                  }
+                  
+                  return (
+                    <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      {icon}
+                      <Text style={{ fontWeight: '600', color: currentTheme.text, minWidth: 110 }}>{label}:</Text>
+                      <View style={{ backgroundColor: badgeColor, borderRadius: 7, paddingHorizontal: 7, paddingVertical: 1, marginLeft: 4, flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 13, color: badgeTextColor, fontWeight: '600' }}>{value}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+
+              {/* sectiune separata pt sfaturi speciale */}
+              {specialTips.length > 0 && (
+                <View style={{ 
+                  borderTopWidth: 1, 
+                  borderTopColor: currentTheme.border, 
+                  paddingTop: 12, 
+                  marginTop: 8 
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <Ionicons name="bulb-outline" size={16} color="#ffa726" style={{ marginRight: 6 }} />
+                    <Text style={{ 
+                      fontWeight: '700', 
+                      color: currentTheme.text, 
+                      fontSize: 15 
+                    }}>
+                      Sfaturi speciale:
+                    </Text>
+                  </View>
+                  
+                  {specialTips.map((tip, tipIndex) => (
+                    <Text 
+                      key={tipIndex} 
+                      style={{ 
+                        fontSize: 14, 
+                        color: currentTheme.text, 
+                        lineHeight: 20,
+                        marginBottom: 6,
+                        paddingLeft: 4,
+                        fontStyle: 'italic'
+                      }}
+                    >
+                      • {tip}
+                    </Text>
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        }
+      })}
+    </ScrollView>
+  );
+};
+
+
+
+  // // // Salvare în istoric fără restricții
+  // // const saveToHistory = async (groups: ClothingItem[][]) => {
+  // //   try {
+  // //     const user = auth.currentUser;
+  // //     if (!user) return;
+      
+  // //     for (let i = 0; i < groups.length; i++) {
+  // //       const group = groups[i];
+  // //       const profile = generateGroupRecommendation(group);
+        
+  // //       await addDoc(collection(db, 'users', user.uid, 'garments'), {
+  // //         groupIndex: i + 1,
+  // //         totalGroups: groups.length,
+  // //         items: group.map((item: ClothingItem) => ({
+  // //           id: item.id,
+  // //           material: item.materialManual || item.material,
+  // //           culoare: item.culoareManual || item.culoare,
+  // //           temperatura: item.temperatura,
+  // //           simboluri: item.simboluri,
+  // //           image: item.image,
+  // //         })),
+  // //         washingProfile: {
+  // //           program: profile.program,
+  // //           temperature: profile.temperature,
+  // //           spinSpeed: profile.spinSpeed,
+  // //           washTime: profile.washTime,
+  // //           detergentType: profile.detergentType,
+  // //         },
+  // //         recommendation: getGroupRecommendation(group),
+  // //         created_at: serverTimestamp(),
+  // //         efficiency: groupCompatibleItems(groups.flat()).efficiency
+  // //       });
+  // //     }
+      
+  //     console.log(`Salvate ${groups.length} grupuri în istoric`);
+  //   } catch (e) {
+  //     console.error('Eroare la salvarea în istoric:', e);
+  //     Alert.alert('Eroare', 'Nu s-a putut salva în istoric.');
+  //   }
+  // };
+
+  // salvare in istoric
+  // await saveToHistory(result.groups);
+
+
+
+
+// functie pentru recomandarea manuala 
   const handleManualRecommendation = async () => {
-    const groups: any[][] = groupCompatibleItems(laundryItems);
-    if (groups.length === 0) {
-      setManualRecommendation('Nu există haine scanate.');
+    const result: GroupingResult = groupCompatibleItems(laundryItems);
+    
+    if (result.groups.length === 0) {
+      setManualRecommendation('Nu există haine scanate pentru grupare.');
       setModalVisible(true);
       return;
     }
-    let text = '';
-    groups.forEach((group: any[], idx: number) => {
-      text += `Grupul ${idx + 1} (${group.length} articole):\n`;
-      text += group.map((item: any) => {
-        const itemIndex = laundryItems.findIndex((h) => h.id === item.id);
-        return `Haina ${itemIndex + 1}: ${item.materialManual || item.material}, ${item.culoareManual || item.culoare}, ${item.temperatura}`;
-      }).join('\n');
-      text += `\nRecomandare: ${getGroupRecommendation(group)}\n\n`;
-    });
-    setManualRecommendation(text.trim());
+
+    const textRecommendation = getTextualRecommendation(result.groups);
+    let finalRecommendation = textRecommendation;
+    
+    setManualRecommendation(finalRecommendation);
     setModalVisible(true);
-    await saveToHistory(groups);
+
+  };
+
+  // functie de validare a gruparii inainte de finalizare
+  const validateGrouping = (): { isValid: boolean; warnings: string[] } => {
+    const warnings: string[] = [];
+    let isValid = true;
+
+    // verificare daca toate hainele au material si culoare setate
+    const incompleteItems = laundryItems.filter(item => 
+      !item.materialManual || !item.culoareManual
+    );
+    
+    if (incompleteItems.length > 0) {
+      warnings.push(`${incompleteItems.length} articole nu au materialul sau culoarea setate manual`);
+    }
+
+    // verific daca exista articole cu simboluri nedefinite
+    const unknownSymbols = laundryItems.filter(item => 
+      !item.simboluri || item.simboluri.length === 0
+    );
+    
+    if (unknownSymbols.length > 0) {
+      warnings.push(`${unknownSymbols.length} articole nu au simboluri detectate`);
+    }
+
+    // verificare eficienta potentiala
+    const result = groupCompatibleItems(laundryItems);
+    if (result.efficiency < 50) {
+      warnings.push(`Eficiența grupării este scăzută (${result.efficiency}%)`);
+    }
+    
+    return { isValid, warnings };
+  };
+
+  // validare buton de finalizare
+  const handleFinishWithValidation = () => {
+    const validation = validateGrouping();
+    
+    if (validation.warnings.length > 0) {
+      Alert.alert(
+        'Atenție',
+        `Următoarele probleme au fost detectate:\n\n${validation.warnings.join('\n')}\n\nDoriți să continuați?`,
+        [
+          { text: 'Anulează', style: 'cancel' },
+          { text: 'Continuă', onPress: handleManualRecommendation }
+        ]
+      );
+    } else {
+      handleManualRecommendation();
+    }
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.background }] }>
-      <View style={[styles.header, { backgroundColor: currentTheme.background }] }>
+    <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.background }]}>
+      <View style={[styles.header, { backgroundColor: currentTheme.background }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={currentTheme.primary} />
         </TouchableOpacity>
@@ -322,7 +596,7 @@ export default function ScanScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={[styles.contentContainer, { backgroundColor: currentTheme.background }] }>
+      <View style={[styles.contentContainer, { backgroundColor: currentTheme.background }]}>
         <View style={styles.actionsContainer}>
           <TouchableOpacity style={[styles.actionButton, { backgroundColor: currentTheme.primary }]} onPress={handleUploadImage}>
             <Ionicons name="images-outline" size={24} color={currentTheme.buttonText} />
@@ -335,8 +609,7 @@ export default function ScanScreen() {
           </TouchableOpacity>
         </View>
 
-
-        <View style={[styles.itemsContainer, { backgroundColor: currentTheme.card }] }>
+        <View style={[styles.itemsContainer, { backgroundColor: currentTheme.card }]}>
           <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>{t('scan.scannedClothes')}</Text>
           
           {laundryItems.length === 0 ? (
@@ -351,10 +624,18 @@ export default function ScanScreen() {
               data={laundryItems}
               keyExtractor={item => item.id}
               renderItem={({ item, index }) => (
-                <View style={[styles.itemCard, { backgroundColor: currentTheme.card, borderColor: currentTheme.border }] }>
-                  <Image source={{ uri: item.image }} style={styles.itemImage} />
+                <View style={[styles.itemCard, { backgroundColor: currentTheme.card, borderColor: currentTheme.border }]}>
+                  <View style={{ position: 'relative' }}>
+                    <Image source={{ uri: item.image }} style={styles.itemImage} />
+                    <TouchableOpacity
+                      style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 20, padding: 4, zIndex: 2 }}
+                      onPress={() => setLaundryItems(prev => prev.filter(clothing => clothing.id !== item.id))}
+                    >
+                      <Ionicons name="trash-outline" size={22} color="#e57373" />
+                    </TouchableOpacity>
+                  </View>
                   <View style={styles.itemDetails}>
-                    <Text style={styles.itemNumber}>{`Haina ${index + 1}`}</Text>
+                    <Text style={styles.itemNumber}>{item.nume}</Text>
                     <TouchableOpacity 
                       style={[
                         styles.inlineSelectBox,
@@ -392,45 +673,37 @@ export default function ScanScreen() {
         </View>
         
         {laundryItems.length > 0 && (
-          <TouchableOpacity style={[styles.doneButton, { backgroundColor: currentTheme.primary }]} onPress={handleManualRecommendation}>
+          <TouchableOpacity style={[styles.doneButton, { backgroundColor: currentTheme.primary }]} onPress={handleFinishWithValidation}>
             <Text style={[styles.doneButtonText, { color: currentTheme.buttonText }]}>{t('scan.finishScanning')}</Text>
           </TouchableOpacity>
         )}
       </View>
 
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: currentTheme.card }] }>
+        <View style={[styles.modalOverlay]}>
+          <View style={[styles.modalContent, { backgroundColor: currentTheme.card, marginTop: 32, padding: 12, minWidth: '100%', marginBottom: 64 }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: currentTheme.text }]}>Recomandare spălare</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color={currentTheme.primary} />
-              </TouchableOpacity>
+              <Text style={{ fontWeight: '700', fontSize: 22, color: currentTheme.text, flex: 1, textAlign: 'center' }}>Configurare program</Text>
             </View>
-            <View style={{ marginBottom: 16 }}>{renderRecommendationModal()}</View>
-            <TouchableOpacity style={[styles.modalButton, { backgroundColor: currentTheme.primary }]} onPress={() => setModalVisible(false)}>
+            <View style={{ marginBottom: 10 }}>{renderRecommendationModal()}</View>
+            <TouchableOpacity style={[styles.modalButton, { backgroundColor: currentTheme.primary, marginTop: -30 }]} onPress={() => setModalVisible(false)}>
               <Text style={[styles.modalButtonText, { color: currentTheme.buttonText }]}>{t('common.close')}</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> 
           </View>
         </View>
       </Modal>
 
-      {/* Modal Material */}
+{/* modal pt material */}
       <Modal visible={materialModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: currentTheme.card }]}>
             <Text style={[styles.modalTitle, { color: currentTheme.text }]}>Selectează materialul</Text>
             {[
               'Bumbac',
-              'Lână',
+              'Lână', 
               'Sintetic',
               'Delicat',
-              'Mătase',
-              'Vâscoză',
-              'Poliester',
-              'Bumbac organic',
-              'In',
-              'Cașmir'
+              'In'
             ].map((mat) => (
               <TouchableOpacity
                 key={mat}
@@ -477,7 +750,8 @@ export default function ScanScreen() {
         </View>
       </Modal>
 
-      {/* modal culoare */}
+
+      {/* modal pt culoare */}
       <Modal visible={colorModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: currentTheme.card }]}>
@@ -485,9 +759,9 @@ export default function ScanScreen() {
             {[
               'Alb',
               'Negru',
-              'Colorat',
-              'Multicolor',
-              'Pastel'
+              'Culori deschise',
+              'Culori închise', 
+              'Multicolor'
             ].map((cul) => (
               <TouchableOpacity
                 key={cul}
@@ -536,8 +810,6 @@ export default function ScanScreen() {
     </SafeAreaView>
   );
 }
-
-
 
 
 
@@ -703,9 +975,10 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingHorizontal: 2,
   },
   modalTitle: {
     fontSize: 22,

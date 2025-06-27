@@ -37,7 +37,7 @@
     "splash": {
       "image": "./assets/images/LaundryMateIcon1.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffdbd8"
+      "backgroundColor": "#0a7ea4"
     },
     "notification": {
       "icon": "./assets/images/LaundryMateIcon1.png",

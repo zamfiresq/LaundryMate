@@ -2,7 +2,7 @@
 
 export async function getLaundryTip(message: string, language: string = 'en') {
     try {
-      const response = await fetch("http://192.168.100.113:8000/api/chat/", { // modificare ip manual
+      const response = await fetch("http://192.168.100.119:8000/api/chat/", { // modificare ip manual
         method: "POST",
         headers: {
           "Content-Type": "application/json",
