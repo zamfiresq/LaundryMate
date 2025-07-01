@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
@@ -9,6 +9,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { lightTheme, darkTheme } from '@/constants/theme';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
+import { HistoryService } from '@/src/services/historyService';
+import { useHistory } from '@/hooks/useHistory';
 
 const materialMap = {
   'Bumbac': 'Cotton',
@@ -44,6 +46,7 @@ export default function Home() {
   const { isDark } = useTheme();
   const currentTheme = isDark ? darkTheme : lightTheme;
   const { t, i18n: i18nInstance } = useTranslation();
+  const { getPinnedSessions, pinnedSessions, unpinSession } = useHistory();
 
   // display the current user s first name
   useEffect(() => {
@@ -76,15 +79,14 @@ export default function Home() {
     const fetchStatsAndLastSession = async () => {
       const user = auth.currentUser;
       if (!user) return;
-      const garmentsRef = collection(db, 'users', user.uid, 'garments');
-      const q = query(garmentsRef, orderBy('created_at', 'desc'));
-      const querySnapshot = await getDocs(q);
-      const data: any[] = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setStats({
-        sessions: data.length,
-        clothes: data.reduce((acc, s) => acc + (s.items ? s.items.length : 0), 0),
-      });
-      setLastSession(data.length > 0 ? data[0] : null);
+      // Obține statistici reale
+      try {
+        const statsData = await HistoryService.getStats(user.uid);
+        setStats(statsData);
+      } catch (e) {
+        setStats({ sessions: 0, clothes: 0 });
+      }
+      // Poți păstra logica pentru lastSession dacă vrei
     };
     fetchStatsAndLastSession();
   }, [auth.currentUser]);
@@ -136,39 +138,54 @@ export default function Home() {
         </View>
       ) : null}
 
-      {/* Ultima recomandare (mock) */}
-      <View style={styles.lastRecCard}>
-        <Text style={styles.sectionTitle}>{t('home.lastRecommendation')}</Text>
-        <Text style={styles.programBadge}>{mockLastSession.program}</Text>
-        {mockLastSession.items.map((item, idx) => (
-          <Text key={item.id} style={styles.hainaText}>
-            {t('home.program')}: {item.material}, {item.culoare}, {item.temperatura}
-          </Text>
-        ))}
-        <Text style={styles.dateText}>{new Date(mockLastSession.created_at.seconds * 1000).toLocaleString(i18nInstance.language === 'ro' ? 'ro-RO' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' })}</Text>
-        <TouchableOpacity style={styles.reuseBtn} onPress={() => Alert.alert(t('common.reuse'), t('common.reuseCustomization')) }>
-          <Ionicons name="refresh" size={18} color="#207278" />
-          <Text style={styles.reuseBtnText}>{t('home.reuseRecommendation')}</Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Container pentru statistici + scanare rapida */}
-      <View style={styles.statsScanContainer}>
-        <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>{t('home.personalStats')}</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Ionicons name="calendar-outline" size={28} color="#5bafb5" style={{ marginBottom: 2 }} />
-              <Text style={styles.statNumber}>1</Text>
-              <Text style={styles.statLabel}>{t('home.sessions')}</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Ionicons name="shirt-outline" size={28} color="#5bafb5" style={{ marginBottom: 2 }} />
-              <Text style={styles.statNumber}>11</Text>
-              <Text style={styles.statLabel}>{t('home.clothesScanned')}</Text>
-            </View>
+      <View style={[styles.statsCard, styles.cardUnified, { backgroundColor: currentTheme.card, borderColor: currentTheme.border }] }>
+        <Text style={[styles.statsTitle, styles.cardTitle, { color: currentTheme.primary, textAlign: 'left' }]}>{t('home.personalStats')}</Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statBox}>
+            <Ionicons name="calendar-outline" size={28} color="#5bafb5" style={{ marginBottom: 2 }} />
+            <Text style={styles.statNumber}>{stats.sessions}</Text>
+            <Text style={styles.statLabel}>{t('home.sessions')}</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Ionicons name="shirt-outline" size={28} color="#5bafb5" style={{ marginBottom: 2 }} />
+            <Text style={styles.statNumber}>{stats.clothes}</Text>
+            <Text style={styles.statLabel}>{t('home.clothesScanned')}</Text>
           </View>
         </View>
+      </View>
+
+      {/* Programe favorite (mini board) */}
+      <View style={[styles.lastRecCard, styles.cardUnified, { backgroundColor: currentTheme.card, borderColor: currentTheme.border }] }>
+        <Text style={[styles.sectionTitle, styles.cardTitle, { color: currentTheme.primary, textAlign: 'left' }]}>Programe favorite</Text>
+        {pinnedSessions.length === 0 ? (
+          <Text style={{ color: currentTheme.textSecondary, fontStyle: 'italic', marginBottom: 8 }}>
+            Niciun program favorit salvat încă. Poți salva un program din istoric pentru a-l vedea aici.
+          </Text>
+        ) : (
+          <View style={{ maxHeight: 220 }}>
+            <ScrollView contentContainerStyle={{ paddingBottom: 10 }} showsVerticalScrollIndicator={false}>
+              {pinnedSessions.map(session => (
+                <View key={session.id} style={{ marginBottom: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: currentTheme.card, borderRadius: 12, padding: 10, borderWidth: 1, borderColor: currentTheme.border }}>
+                  <TouchableOpacity onPress={() => unpinSession(session.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="star" size={22} color={currentTheme.primary} style={{ marginRight: 10 }} />
+                  </TouchableOpacity>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: currentTheme.text, fontWeight: '700', fontSize: 15 }} numberOfLines={1}>
+                      {session.washGroup.washingProfile.program}
+                    </Text>
+                    <Text style={{ color: currentTheme.textSecondary, fontSize: 13, marginTop: 2 }}>
+                      {session.washGroup.washingProfile.temperature}, {session.washGroup.washingProfile.washTime} min, {session.washGroup.washingProfile.spinSpeed} rpm
+                    </Text>
+                    <Text style={{ color: currentTheme.textSecondary, marginTop: 2, fontSize: 12 }}>
+                      {session.created_at.toLocaleDateString(i18nInstance.language === 'ro' ? 'ro-RO' : 'en-US', { dateStyle: 'medium' })}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -220,7 +237,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e6f7f9',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 30,
     shadowColor: '#207278',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -308,8 +325,9 @@ const styles = StyleSheet.create({
   lastRecCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 18,
-    marginBottom: 18,
+    padding: 14,
+    marginBottom: 30,
+    marginTop: -13,
     shadowColor: '#207278',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -355,8 +373,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f7fafc',
     borderRadius: 16,
     padding: 18,
-    marginTop: -10,
-    marginBottom: 18,
+    marginTop: -20,
+    marginBottom: 30,
     shadowColor: '#207278',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07,
@@ -369,6 +387,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#207278',
     marginBottom: 10,
+    alignSelf: 'flex-start',
   },
   statsRow: {
     flexDirection: 'row',
@@ -405,5 +424,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 5,
+  },
+  cardUnified: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    shadowColor: '#207278',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 1,
+  },
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 14,
+    fontFamily: 'Roboto',
+    letterSpacing: 0.1,
   },
 });

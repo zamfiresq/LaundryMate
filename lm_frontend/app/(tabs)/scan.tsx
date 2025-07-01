@@ -133,7 +133,7 @@ export default function ScanScreen() {
       } as any);
 
       // trimitere catre backend pentru detectarea simbolurilor
-      const response = await fetch('http://192.168.100.119:8000/api/detect-symbols/', {
+      const response = await fetch('http://172.20.10.9:8000/api/detect-symbols/', {
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -471,70 +471,122 @@ export default function ScanScreen() {
 
 
 
-  // // // Salvare în istoric fără restricții
-  // // const saveToHistory = async (groups: ClothingItem[][]) => {
-  // //   try {
-  // //     const user = auth.currentUser;
-  // //     if (!user) return;
-      
-  // //     for (let i = 0; i < groups.length; i++) {
-  // //       const group = groups[i];
-  // //       const profile = generateGroupRecommendation(group);
-        
-  // //       await addDoc(collection(db, 'users', user.uid, 'garments'), {
-  // //         groupIndex: i + 1,
-  // //         totalGroups: groups.length,
-  // //         items: group.map((item: ClothingItem) => ({
-  // //           id: item.id,
-  // //           material: item.materialManual || item.material,
-  // //           culoare: item.culoareManual || item.culoare,
-  // //           temperatura: item.temperatura,
-  // //           simboluri: item.simboluri,
-  // //           image: item.image,
-  // //         })),
-  // //         washingProfile: {
-  // //           program: profile.program,
-  // //           temperature: profile.temperature,
-  // //           spinSpeed: profile.spinSpeed,
-  // //           washTime: profile.washTime,
-  // //           detergentType: profile.detergentType,
-  // //         },
-  // //         recommendation: getGroupRecommendation(group),
-  // //         created_at: serverTimestamp(),
-  // //         efficiency: groupCompatibleItems(groups.flat()).efficiency
-  // //       });
-  // //     }
-      
-  //     console.log(`Salvate ${groups.length} grupuri în istoric`);
-  //   } catch (e) {
-  //     console.error('Eroare la salvarea în istoric:', e);
-  //     Alert.alert('Eroare', 'Nu s-a putut salva în istoric.');
-  //   }
-  // };
+  // // // salvare in istoric
+// Adaugă această funcție în scan.tsx (înlocuiește partea comentată)
 
-  // salvare in istoric
-  // await saveToHistory(result.groups);
+const saveToHistory = async (groups: ClothingItem[][]) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      console.log('❌ User not authenticated');
+      return;
+    }
+    
+    const sessionId = `session_${Date.now()}`;
+    console.log(`🚀 Salvare istoric - ${groups.length} grupuri în sesiunea ${sessionId}`);
+    
+    // PASUL 1: Salvează toate hainele individual în subcolecția 'garments'
+    const allGarmentIds: string[] = [];
+    
+    for (const group of groups) {
+      for (const item of group) {
+        const garmentDoc = await addDoc(collection(db, 'users', user.uid, 'garments'), {
+          material: item.materialManual || item.material || '',
+          culoare: item.culoareManual || item.culoare || '',
+          temperatura: typeof item.temperatura === 'string' ? 
+            parseInt(item.temperatura.replace('°C', '')) || 30 : 
+            item.temperatura || 30,
+          simboluri: Array.isArray(item.simboluri) ? item.simboluri : [],
+          image: item.image || '',
+          scanDate: serverTimestamp(),
+          materialManual: item.materialManual || item.material || '',
+          culoareManual: item.culoareManual || item.culoare || '',
+          userId: user.uid
+        });
+        
+        allGarmentIds.push(garmentDoc.id);
+        console.log(`✅ Haină salvată: ${garmentDoc.id}`);
+      }
+    }
+    
+    // PASUL 2: Salvează grupurile în subcolecția 'washGroups'
+    const washGroupsRef = collection(db, 'users', user.uid, 'washGroups');
+    let garmentIndex = 0;
+    
+    for (let i = 0; i < groups.length; i++) {
+      const group = groups[i];
+      const profile = generateGroupRecommendation(group);
+      
+      // Ia ID-urile hainelor pentru acest grup
+      const groupGarmentIds = allGarmentIds.slice(garmentIndex, garmentIndex + group.length);
+      garmentIndex += group.length;
+      
+      await addDoc(washGroupsRef, {
+        groupIndex: i + 1,
+        totalGroups: groups.length,
+        garmentIds: groupGarmentIds,
+        washingProfile: {
+          program: profile.program,
+          temperature: profile.temperature,
+          spinSpeed: profile.spinSpeed,
+          washTime: profile.washTime,
+          detergentType: profile.detergentType,
+          //restrictions: profile.restrictions || []
+        },
+        recommendation: getGroupRecommendation(group),
+        created_at: serverTimestamp(),
+        efficiency: groupCompatibleItems(groups.flat()).efficiency,
+        sessionId: sessionId
+      });
+      
+      console.log(`✅ Grup ${i + 1} salvat cu ${group.length} haine`);
+    }
+    
+    console.log(`Salvate ${groups.length} grupuri cu ${allGarmentIds.length} haine în istoric`);
+    
+    // Afișează notificare de succes
+    Alert.alert(
+      'Salvat în istoric',
+      `${groups.length} ${groups.length === 1 ? 'grup' : 'grupuri'} cu ${allGarmentIds.length} ${allGarmentIds.length === 1 ? 'haină' : 'haine'} salvate.`,
+      [
+        {
+          text: 'Vezi istoric',
+          onPress: () => router.push('/(tabs)/history')
+        },
+        { text: 'OK', style: 'default' }
+      ]
+    );
+    
+  } catch (e) {
+    console.error('❌ Eroare la salvarea în istoric:', e);
+    Alert.alert('Eroare', 'Nu s-a putut salva în istoric. Verifică conexiunea și încearcă din nou.');
+  }
+};
 
 
 
 
 // functie pentru recomandarea manuala 
-  const handleManualRecommendation = async () => {
-    const result: GroupingResult = groupCompatibleItems(laundryItems);
-    
-    if (result.groups.length === 0) {
-      setManualRecommendation('Nu există haine scanate pentru grupare.');
-      setModalVisible(true);
-      return;
-    }
-
-    const textRecommendation = getTextualRecommendation(result.groups);
-    let finalRecommendation = textRecommendation;
-    
-    setManualRecommendation(finalRecommendation);
+const handleManualRecommendation = async () => {
+  const result: GroupingResult = groupCompatibleItems(laundryItems);
+  
+  if (result.groups.length === 0) {
+    setManualRecommendation('Nu există haine scanate pentru grupare.');
     setModalVisible(true);
+    return;
+  }
 
-  };
+  const textRecommendation = getTextualRecommendation(result.groups);
+  let finalRecommendation = textRecommendation;
+  
+  setManualRecommendation(finalRecommendation);
+  setModalVisible(true);
+
+  // apelarea functiei de salvare in istoric
+  await saveToHistory(result.groups);
+};
+
+
 
   // functie de validare a gruparii inainte de finalizare
   const validateGrouping = (): { isValid: boolean; warnings: string[] } => {
@@ -686,9 +738,47 @@ export default function ScanScreen() {
               <Text style={{ fontWeight: '700', fontSize: 22, color: currentTheme.text, flex: 1, textAlign: 'center' }}>Configurare program</Text>
             </View>
             <View style={{ marginBottom: 10 }}>{renderRecommendationModal()}</View>
-            <TouchableOpacity style={[styles.modalButton, { backgroundColor: currentTheme.primary, marginTop: -30 }]} onPress={() => setModalVisible(false)}>
-              <Text style={[styles.modalButtonText, { color: currentTheme.buttonText }]}>{t('common.close')}</Text>
-            </TouchableOpacity> 
+            {/* Butoanele din modal - înlocuiește vechiul buton */}
+<View style={{ flexDirection: 'row', gap: 12, marginTop: -20 }}>
+  <TouchableOpacity 
+    style={[
+      styles.modalButton, 
+      { 
+        backgroundColor: currentTheme.primary, 
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }
+    ]} 
+    onPress={async () => {
+      const result = groupCompatibleItems(laundryItems);
+      await saveToHistory(result.groups);
+    }}
+  >
+    {/* <Ionicons name="save" size={20} color={currentTheme.buttonText} style={{ marginRight: 8 }} /> */}
+    <Text style={[styles.modalButtonText, { color: currentTheme.buttonText }]}>
+      Salvează în istoric
+    </Text>
+  </TouchableOpacity>
+  
+  <TouchableOpacity 
+    style={[
+      styles.modalButton, 
+      { 
+        backgroundColor: currentTheme.cardSecondary,
+        borderWidth: 1,
+        borderColor: currentTheme.border,
+        flex: 1
+      }
+    ]} 
+    onPress={() => setModalVisible(false)}
+  >
+    <Text style={[styles.modalButtonText, { color: currentTheme.text }]}>
+      {t('common.close')}
+    </Text>
+  </TouchableOpacity>
+</View>
           </View>
         </View>
       </Modal>
