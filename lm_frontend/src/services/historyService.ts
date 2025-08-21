@@ -132,8 +132,6 @@ export class HistoryService {
       
       // 3. Șterge grupul
       await deleteDoc(washGroupRef);
-      
-      console.log(`Grup șters: ${washGroupId}`);
     } catch (error) {
       console.error('Eroare la ștergerea grupului:', error);
       throw error;
@@ -184,7 +182,6 @@ export class HistoryService {
         return deleteDoc(washGroupRef);
       });
       await Promise.all(deletePromises);
-      console.log(`Toate grupurile de spălare au fost șterse pentru user: ${userId}`);
     } catch (error) {
       console.error('Eroare la ștergerea tuturor grupurilor:', error);
       throw error;

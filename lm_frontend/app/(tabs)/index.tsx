@@ -54,7 +54,6 @@ export default function Home() {
       const user = auth.currentUser;
       if (user) {
         await user.reload();
-        console.log('DisplayName:', user.displayName);
         const fullName = user.displayName || '';
         const firstName = fullName.trim().split(' ')[0]; // display only the first name
         setDisplayName(firstName);

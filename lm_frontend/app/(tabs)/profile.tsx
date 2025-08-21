@@ -39,7 +39,7 @@ export default function ProfileScreen() {
       try {
         const user = auth.currentUser;
         if (!user) {
-          console.log('No user found');
+          // console.log('No user found');
           return;
         }
 
@@ -48,7 +48,7 @@ export default function ProfileScreen() {
 
         if (docSnap.exists()) {
           const data = docSnap.data();
-          console.log('User data loaded:', data);
+          // console.log('User data loaded:', data);
           setUserData(data);
           setEditedData({
             firstName: data.firstName || '',
@@ -56,7 +56,7 @@ export default function ProfileScreen() {
             email: data.email || user.email || ''
           });
         } else {
-          console.log('No user document found');
+          // console.log('No user document found');
           setUserData({
             firstName: '',
             lastName: '',
@@ -69,7 +69,7 @@ export default function ProfileScreen() {
           });
         }
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        // console.error('Error fetching user data:', error);
         Alert.alert(t('common.error'), t('errors.general'));
       }
     };
@@ -83,7 +83,7 @@ export default function ProfileScreen() {
           }
         }
       } catch (error) {
-        console.error('Error loading theme preference:', error);
+        // console.error('Error loading theme preference:', error);
       } finally {
         setIsLoading(false);
       }
@@ -120,7 +120,7 @@ export default function ProfileScreen() {
         ]
       );
     } catch (error) {
-      console.error('Error changing language:', error);
+      // console.error('Error changing language:', error);
       Alert.alert(t('common.error'), t('errors.general'));
     }
   };
@@ -222,7 +222,7 @@ export default function ProfileScreen() {
         try {
           await updateEmail(user, editedData.email);
         } catch (error: any) {
-          console.error('Error updating email:', error);
+          // console.error('Error updating email:', error);
           Alert.alert(t('common.error'), t('profile.emailUpdateError'));
           return;
         }
@@ -236,7 +236,7 @@ export default function ProfileScreen() {
       setIsEditModalVisible(false);
       Alert.alert(t('common.success'), t('profile.profileUpdated'));
     } catch (error) {
-      console.error('Error updating profile:', error);
+      // console.error('Error updating profile:', error);
       Alert.alert(t('common.error'), t('errors.general'));
     }
   };

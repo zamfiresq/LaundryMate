@@ -1,3 +1,5 @@
+# modelul de logare a notificarilor
+
 from django.db import models
 
 class NotificationLog(models.Model):

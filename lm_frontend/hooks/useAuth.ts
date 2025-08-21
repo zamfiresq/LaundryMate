@@ -8,10 +8,7 @@ export function useAuth() {
 
   useEffect(() => {
     const auth = getFirebaseAuth(); // lazy init aici
-    console.log("[DEBUG] getFirebaseAuth:", auth);
-    console.log("[DEBUG] onAuthStateChanged hook triggered");
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      console.log("[DEBUG] User in hook:", firebaseUser);
       setUser(firebaseUser);
       setLoading(false);
     });

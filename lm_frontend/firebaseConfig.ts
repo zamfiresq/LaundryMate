@@ -21,7 +21,6 @@ const auth = initializeAuth(app, {
 });
 
 export function getFirebaseAuth() {
-  console.log("[DEBUG] getFirebaseAuth:", auth);
   return auth;
 }
 

@@ -7,7 +7,9 @@ import {
   Image, 
   TouchableOpacity, 
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  Modal,
+  ScrollView
 } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { lightTheme, darkTheme } from '@/constants/theme';
@@ -15,6 +17,8 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useHistory } from '@/hooks/useHistory';
 import { HistorySession } from '@/src/services/types';
+import { getTextualRecommendation } from '@/src/utils/laundryRules';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function HistoryScreen() {
   const { isDark } = useTheme();
@@ -38,6 +42,11 @@ export default function HistoryScreen() {
 
   // State pentru id-urile sesiunilor pin-uite
   const [pinnedIds, setPinnedIds] = useState<string[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<HistorySession | null>(null);
+  const [filterDate, setFilterDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [filteredSessions, setFilteredSessions] = useState<HistorySession[]>(sessions);
 
   useEffect(() => {
     const fetchPinned = async () => {
@@ -48,6 +57,18 @@ export default function HistoryScreen() {
     fetchPinned();
   }, [sessions, getPinnedSessions]);
 
+  useEffect(() => {
+    if (filterDate) {
+      setFilteredSessions(
+        sessions.filter(s =>
+          s.created_at.toDateString() === filterDate.toDateString()
+        )
+      );
+    } else {
+      setFilteredSessions(sessions);
+    }
+  }, [filterDate, sessions]);
+
   const handlePin = async (id: string) => {
     await pinSession(id);
     setPinnedIds(prev => [...prev, id]);
@@ -57,18 +78,243 @@ export default function HistoryScreen() {
     setPinnedIds(prev => prev.filter(pid => pid !== id));
   };
 
-  console.log('=== HISTORY DEBUG ===');
-  console.log('Sessions length:', sessions.length);
-  console.log('Loading:', loading);
-  console.log('Error:', error);
-  console.log('isEmpty:', isEmpty);
-  console.log('Sessions data:', JSON.stringify(sessions, null, 2));
+  const renderSessionDetailsModal = () => {
+    if (!selectedSession) return null;
+    // Conversie GarmentItem[] la ClothingItem[]
+    const clothingItems = selectedSession.garments.map(g => ({
+      id: g.id,
+      image: g.image,
+      material: g.material,
+      culoare: g.culoare,
+      temperatura: typeof g.temperatura === 'number' ? `${g.temperatura}°C` : g.temperatura,
+      simboluri: g.simboluri,
+      materialManual: g.materialManual,
+      culoareManual: g.culoareManual
+    }));
+    const recommendationText = getTextualRecommendation([clothingItems]);
+    const processedRecommendation = recommendationText.replace(
+      /Grupul (\d+) \((\d+) articole\):/g, 
+      (match, groupNumber, itemCount) => {
+        const count = parseInt(itemCount);
+        const articleWord = count === 1 ? 'articol' : 'articole';
+        return `Grupul ${groupNumber} (${count} ${articleWord}):`;
+      }
+    );
+    const groupBlocks = processedRecommendation.split(/(Grupul \d+ \(\d+ articole?\):)/g).filter(Boolean);
+    return (
+      <Modal visible={modalVisible} animationType="slide" transparent={true} onRequestClose={() => setModalVisible(false)}>
+        <View style={[styles.modalOverlay]}> 
+          <View style={[styles.modalContent, { backgroundColor: currentTheme.card, marginTop: 32, padding: 12, minWidth: '100%', marginBottom: 64 }]}> 
+            <View style={styles.modalHeader}>
+              <Text style={{ fontWeight: '700', fontSize: 22, color: currentTheme.text, flex: 1, textAlign: 'center' }}>Detalii sesiune</Text>
+            </View>
+            <ScrollView style={{ maxHeight: '92%' }} contentContainerStyle={{ paddingBottom: 16 }} showsVerticalScrollIndicator={true}>
+              {groupBlocks.map((block, idx) => {
+                if (block.startsWith('Grupul')) {
+                  return (
+                    <View key={idx} style={{ marginTop: idx !== 0 ? 20 : 0, marginBottom: 8 }}>
+                      <Text style={{ fontWeight: '700', fontSize: 18, color: currentTheme.primary, letterSpacing: 0.2 }}>{block}</Text>
+                    </View>
+                  );
+                } else {
+
+                  const lines = block.split('\n').filter(Boolean);
+                  const articleLines = lines.filter(l => l.trim().startsWith('• Haina'));
+                  const recIndex = lines.findIndex(l => l.trim().startsWith('Recomandare spălare:'));
+                  const recLines = recIndex !== -1 ? lines.slice(recIndex) : [];
+                  const tipsIndex = lines.findIndex(l => l.trim().startsWith('• Sfaturi speciale:'));
+                  let specialTips: string[] = [];
+                  if (tipsIndex !== -1) {
+                    specialTips = lines.slice(tipsIndex + 1)
+                      .filter(line => line.trim().startsWith('- '))
+                      .map(line => line.trim().replace(/^- /, ''));
+                  }
+                  return (
+                    <View
+                      key={idx}
+                      style={{
+                        backgroundColor: currentTheme.cardSecondary,
+                        borderRadius: 14,
+                        padding: 14,
+                        marginBottom: 18,
+                        shadowColor: '#000',
+                        shadowOpacity: 0.06,
+                        shadowRadius: 3,
+                        elevation: 2,
+                        borderWidth: 1,
+                        borderColor: currentTheme.border,
+                      }}
+                    >
+                      {/* lista articole */}
+                      <View style={{ marginBottom: 16 }}>
+                        {articleLines.map((art, i) => {
+                          const cleanText = art.replace(/^•\s*/, ''); 
+                          const itemName = cleanText.split(':')[0].trim();
+                          const match = art.match(/: (.*?), (.*?),/);
+                          const material = match ? match[1] : '';
+                          const culoare = match ? match[2] : '';
+                          return (
+                            <View key={i} style={{ 
+                              flexDirection: 'row', 
+                              alignItems: 'center', 
+                              marginBottom: 10,
+                              paddingVertical: 8,
+                            }}>
+                              <Text style={{ 
+                                fontSize: 16, 
+                                color: currentTheme.primary, 
+                                fontWeight: '600',
+                                flex: 1,
+                                marginRight: 12,
+                              }}>
+                                {`Haina ${i + 1}`}
+                              </Text>
+                              {material && (
+                                <View style={{ 
+                                  backgroundColor: '#e3f2fd',
+                                  borderRadius: 12,
+                                  paddingHorizontal: 10,
+                                  paddingVertical: 4,
+                                  marginRight: 8,
+                                  borderWidth: 1,
+                                  borderColor: '#bbdefb',
+                                }}>
+                                  <Text style={{ 
+                                    fontSize: 12, 
+                                    color: '#1565c0', 
+                                    fontWeight: '600',
+                                    textTransform: 'capitalize'
+                                  }}>
+                                    {material.toLowerCase()}
+                                  </Text>
+                                </View>
+                              )}
+                              {culoare && (
+                                <View style={{ 
+                                  backgroundColor: '#fff3e0',
+                                  borderRadius: 12,
+                                  paddingHorizontal: 10,
+                                  paddingVertical: 4,
+                                  borderWidth: 1,
+                                  borderColor: '#ffcc80',
+                                }}>
+                                  <Text style={{ 
+                                    fontSize: 12, 
+                                    color: '#e65100', 
+                                    fontWeight: '600',
+                                    textTransform: 'capitalize'
+                                  }}>
+                                    {culoare.toLowerCase()}
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                          );
+                        })}
+                      </View>
+                      {/* recomandare */}
+                      <View style={{ borderTopWidth: 1, borderTopColor: currentTheme.border, paddingTop: 10, marginBottom: 8 }}>
+                        <Text style={{ fontWeight: '700', color: currentTheme.text, fontSize: 16, marginBottom: 10 }}>
+                          Recomandare spălare:
+                        </Text>
+                        {recLines.map((rec, i) => {
+                          if (i === 0 || rec.trim().startsWith('• Sfaturi speciale:') || rec.trim().startsWith('- ')) {
+                            return null;
+                          }
+                          const [label, ...rest] = rec.split(':');
+                          const value = rest.join(':').trim();
+                          let icon = null;
+                          let badgeColor = '#e0f7fa';
+                          let badgeTextColor = '#207278';
+                          if (label.startsWith('Program')) {
+                            icon = <Ionicons name="shirt-outline" size={16} color={currentTheme.primary} style={{ marginRight: 4 }} />;
+                            badgeColor = '#e0f7fa'; badgeTextColor = '#207278';
+                          }
+                          if (label.startsWith('Temperatură')) {
+                            icon = <Ionicons name="thermometer-outline" size={16} color="#e57373" style={{ marginRight: 4 }} />;
+                            badgeColor = '#ffe0b2'; badgeTextColor = '#b26a00';
+                          }
+                          if (label.startsWith('Viteză centrifugare')) {
+                            icon = <Ionicons name="sync-outline" size={16} color="#64b5f6" style={{ marginRight: 4 }} />;
+                            badgeColor = '#bbdefb'; badgeTextColor = '#1976d2';
+                          }
+                          if (label.startsWith('Timp spălare')) {
+                            icon = <Ionicons name="time-outline" size={16} color="#81c784" style={{ marginRight: 4 }} />;
+                            badgeColor = '#c8e6c9'; badgeTextColor = '#388e3c';
+                          }
+                          if (label.startsWith('Detergent')) {
+                            icon = <Ionicons name="flask-outline" size={16} color="#ffd54f" style={{ marginRight: 4 }} />;
+                            badgeColor = '#fff9c4'; badgeTextColor = '#fbc02d';
+                          }
+                          return (
+                            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                              {icon}
+                              <Text style={{ fontWeight: '600', color: currentTheme.text, minWidth: 110 }}>{label}:</Text>
+                              <View style={{ backgroundColor: badgeColor, borderRadius: 7, paddingHorizontal: 7, paddingVertical: 1, marginLeft: 4, flexDirection: 'row', alignItems: 'center' }}>
+                                <Text style={{ fontSize: 13, color: badgeTextColor, fontWeight: '600' }}>{value}</Text>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                      {/* sectiune separata pt sfaturi speciale */}
+                      {specialTips.length > 0 && (
+                        <View style={{ 
+                          borderTopWidth: 1, 
+                          borderTopColor: currentTheme.border, 
+                          paddingTop: 12, 
+                          marginTop: 8 
+                        }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                            <Ionicons name="bulb-outline" size={16} color="#ffa726" style={{ marginRight: 6 }} />
+                            <Text style={{ 
+                              fontWeight: '700', 
+                              color: currentTheme.text, 
+                              fontSize: 15 
+                            }}>
+                              Sfaturi speciale:
+                            </Text>
+                          </View>
+                          {specialTips.map((tip, tipIndex) => (
+                            <Text 
+                              key={tipIndex} 
+                              style={{ 
+                                fontSize: 14, 
+                                color: currentTheme.text, 
+                                lineHeight: 20,
+                                marginBottom: 6,
+                                paddingLeft: 4,
+                                fontStyle: 'italic'
+                              }}
+                            >
+                              • {tip}
+                            </Text>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  );
+                }
+              })}
+            </ScrollView>
+            <TouchableOpacity 
+              style={[styles.modalButton, { backgroundColor: currentTheme.cardSecondary, borderWidth: 1, borderColor: currentTheme.border, marginTop: 12 }]} 
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={[styles.modalButtonText, { color: currentTheme.text }]}>Închide</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
 
   const renderSessionItem = ({ item }: { item: HistorySession }) => {
     const { washGroup, garments } = item;
     const isPinned = pinnedIds.includes(item.id);
     
     return (
+      <TouchableOpacity activeOpacity={0.9} onPress={() => { setSelectedSession(item); setModalVisible(true); }}>
       <View style={[
         styles.card,
         { 
@@ -78,7 +324,7 @@ export default function HistoryScreen() {
         }
       ]}>
         <View style={styles.cardHeader}>
-          {/* Badge pentru program */}
+          {/* badge pentru program */}
           <View style={styles.programBadgeRow}>
             <Text style={[styles.programBadge, { 
               backgroundColor: currentTheme.primary + '20',
@@ -162,19 +408,10 @@ export default function HistoryScreen() {
                 </View>
               ))}
             </View>
-            
-            {/* Eficiența (dacă există) */}
-            {washGroup.efficiency && (
-              <View style={styles.efficiencyBadge}>
-                <Text style={[styles.efficiencyText, { color: currentTheme.primary }]}>
-                  Eficiență: {Math.round(washGroup.efficiency)}%
-                </Text>
-              </View>
-            )}
           </View>
         </View>
 
-        {/* Acțiuni */}
+        {/* actiuni */}
         <View style={styles.actionsRow}>
           <TouchableOpacity 
             style={[styles.actionBtn, styles.deleteBtn]}
@@ -187,6 +424,7 @@ export default function HistoryScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      </TouchableOpacity>
     );
   };
 
@@ -203,6 +441,33 @@ export default function HistoryScreen() {
           </Text>
         )}
       </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+        <TouchableOpacity
+          style={{ padding: 8, borderRadius: 8, borderWidth: 1, borderColor: currentTheme.primary, marginRight: 8 }}
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Ionicons name="calendar-outline" size={22} color={currentTheme.primary} />
+        </TouchableOpacity>
+        {filterDate && (
+          <TouchableOpacity
+            style={{ padding: 8, borderRadius: 8, borderWidth: 1, borderColor: currentTheme.primary }}
+            onPress={() => setFilterDate(null)}
+          >
+            <Ionicons name="close-circle-outline" size={22} color={currentTheme.primary} />
+          </TouchableOpacity>
+        )}
+      </View>
+      {showDatePicker && (
+        <DateTimePicker
+          value={filterDate || new Date()}
+          mode="date"
+          display="default"
+          onChange={(event: any, date?: Date) => {
+            setShowDatePicker(false);
+            if (date) setFilterDate(date);
+          }}
+        />
+      )}
       {sessions.length > 0 && (
         <TouchableOpacity
           style={styles.clearAllIconBtn}
@@ -258,7 +523,7 @@ export default function HistoryScreen() {
         </View>
       ) : (
         <FlatList
-          data={sessions}
+          data={filteredSessions}
           keyExtractor={item => item.id}
           renderItem={renderSessionItem}
           contentContainerStyle={styles.listContainer}
@@ -275,6 +540,7 @@ export default function HistoryScreen() {
           ListFooterComponent={<View style={{ height: 80 }} />}
         />
       )}
+      {renderSessionDetailsModal()}
     </View>
   );
 }
@@ -388,13 +654,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     flex: 1,
   },
-  efficiencyBadge: {
-    alignSelf: 'flex-start',
-  },
-  efficiencyText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -461,5 +720,32 @@ const styles = StyleSheet.create({
     top: 0,
     padding: 6,
     zIndex: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 20,
+    width: '80%',
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalButton: {
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

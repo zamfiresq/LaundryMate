@@ -115,9 +115,7 @@ export default function ScanScreen() {
 
   // efect pt a deschide camera automat
   useEffect(() => {
-    // console.log('openCamera param:', openCamera);
     if (openCamera === 'true') {
-      // console.log('Calling handleTakePhoto...');
       handleTakePhoto();
     }
   }, [openCamera]);
@@ -144,16 +142,13 @@ export default function ScanScreen() {
       if (!response.ok) throw new Error('YOLOv8 prediction failed');
 
       const data = await response.json();
-      console.log('YOLOv8 Response:', data);
 
       const predictionsArray = Array.isArray(data.predictions)
         ? data.predictions
         : (Array.isArray(data?.predictions?.predictions) ? data.predictions.predictions : []);
-      console.log('Predictions array:', predictionsArray);
       
       const detectedSymbols: string[] = Array.from(new Set(predictionsArray.map((item: any) => item.label).filter(Boolean)));
-      console.log('Detected symbol names:', detectedSymbols); 
-
+      
       const { temperatura, material, culoare } = getDetailsFromSymbols(detectedSymbols);
 
       return {
@@ -168,7 +163,6 @@ export default function ScanScreen() {
         nume: `Haina ${laundryItems.length + 1}`
       };
     } catch (error) {
-      console.error(error);
       Alert.alert(t('common.error'), t('scan.scanError'));
       return null;
     }
@@ -202,7 +196,6 @@ export default function ScanScreen() {
 
   // functie pt a face poza cu camera
   const handleTakePhoto = async () => {
-    console.log('handleTakePhoto called.');
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (permissionResult.granted === false) {
@@ -478,12 +471,11 @@ const saveToHistory = async (groups: ClothingItem[][]) => {
   try {
     const user = auth.currentUser;
     if (!user) {
-      console.log('❌ User not authenticated');
+      Alert.alert('Eroare', 'Nu s-a putut salva în istoric. Verifică conexiunea și încearcă din nou.');
       return;
     }
     
     const sessionId = `session_${Date.now()}`;
-    console.log(`🚀 Salvare istoric - ${groups.length} grupuri în sesiunea ${sessionId}`);
     
     // PASUL 1: Salvează toate hainele individual în subcolecția 'garments'
     const allGarmentIds: string[] = [];
@@ -505,7 +497,6 @@ const saveToHistory = async (groups: ClothingItem[][]) => {
         });
         
         allGarmentIds.push(garmentDoc.id);
-        console.log(`✅ Haină salvată: ${garmentDoc.id}`);
       }
     }
     
@@ -538,13 +529,8 @@ const saveToHistory = async (groups: ClothingItem[][]) => {
         efficiency: groupCompatibleItems(groups.flat()).efficiency,
         sessionId: sessionId
       });
-      
-      console.log(`✅ Grup ${i + 1} salvat cu ${group.length} haine`);
     }
     
-    console.log(`Salvate ${groups.length} grupuri cu ${allGarmentIds.length} haine în istoric`);
-    
-    // Afișează notificare de succes
     Alert.alert(
       'Salvat în istoric',
       `${groups.length} ${groups.length === 1 ? 'grup' : 'grupuri'} cu ${allGarmentIds.length} ${allGarmentIds.length === 1 ? 'haină' : 'haine'} salvate.`,
@@ -558,7 +544,6 @@ const saveToHistory = async (groups: ClothingItem[][]) => {
     );
     
   } catch (e) {
-    console.error('❌ Eroare la salvarea în istoric:', e);
     Alert.alert('Eroare', 'Nu s-a putut salva în istoric. Verifică conexiunea și încearcă din nou.');
   }
 };
@@ -697,7 +682,7 @@ const handleManualRecommendation = async () => {
                       activeOpacity={0.8}
                     >
                       <Text style={[styles.inlineSelectText, { color: currentTheme.text }]}>
-                        Material: {item.materialManual || 'Selectează'}
+                        Material: {item.materialManual || 'N/A'}
                       </Text>
                       <Ionicons name="pencil-outline" size={18} color={currentTheme.primary} style={styles.inlineSelectIcon} />
                     </TouchableOpacity>
@@ -710,7 +695,7 @@ const handleManualRecommendation = async () => {
                       activeOpacity={0.8}
                     >
                       <Text style={[styles.inlineSelectText, { color: currentTheme.text }]}>
-                        Culoare: {item.culoareManual || 'Selectează'}
+                        Culoare: {item.culoareManual || 'N/A'}
                       </Text>
                       <Ionicons name="pencil-outline" size={18} color={currentTheme.primary} style={styles.inlineSelectIcon} />
                     </TouchableOpacity>
@@ -738,47 +723,24 @@ const handleManualRecommendation = async () => {
               <Text style={{ fontWeight: '700', fontSize: 22, color: currentTheme.text, flex: 1, textAlign: 'center' }}>Configurare program</Text>
             </View>
             <View style={{ marginBottom: 10 }}>{renderRecommendationModal()}</View>
-            {/* Butoanele din modal - înlocuiește vechiul buton */}
-<View style={{ flexDirection: 'row', gap: 12, marginTop: -20 }}>
-  <TouchableOpacity 
-    style={[
-      styles.modalButton, 
-      { 
-        backgroundColor: currentTheme.primary, 
-        flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center'
-      }
-    ]} 
-    onPress={async () => {
-      const result = groupCompatibleItems(laundryItems);
-      await saveToHistory(result.groups);
-    }}
-  >
-    {/* <Ionicons name="save" size={20} color={currentTheme.buttonText} style={{ marginRight: 8 }} /> */}
-    <Text style={[styles.modalButtonText, { color: currentTheme.buttonText }]}>
-      Salvează în istoric
-    </Text>
-  </TouchableOpacity>
-  
-  <TouchableOpacity 
-    style={[
-      styles.modalButton, 
-      { 
-        backgroundColor: currentTheme.cardSecondary,
-        borderWidth: 1,
-        borderColor: currentTheme.border,
-        flex: 1
-      }
-    ]} 
-    onPress={() => setModalVisible(false)}
-  >
-    <Text style={[styles.modalButtonText, { color: currentTheme.text }]}>
-      {t('common.close')}
-    </Text>
-  </TouchableOpacity>
-</View>
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: -20 }}>
+              <TouchableOpacity 
+                style={[
+                  styles.modalButton, 
+                  { 
+                    backgroundColor: currentTheme.cardSecondary,
+                    borderWidth: 1,
+                    borderColor: currentTheme.border,
+                    flex: 1
+                  }
+                ]} 
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={[styles.modalButtonText, { color: currentTheme.text }]}> 
+                  {t('common.close')}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

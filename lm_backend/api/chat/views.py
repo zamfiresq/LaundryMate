@@ -1,24 +1,28 @@
+# logica pentru ChatAPIView
+
 import os
 from dotenv import load_dotenv
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view
-import requests
 import google.generativeai as genai
 
 load_dotenv()
 
 class ChatAPIView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated | AllowAny]
 
+    # validare input pt LLM
     def post(self, request):
         user_message = request.data.get("message", "")
 
         if not user_message:
             return Response({"error": "No message provided."}, status=status.HTTP_400_BAD_REQUEST)
 
+
+        # logica pentru a apela LLM
         try:
             genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 

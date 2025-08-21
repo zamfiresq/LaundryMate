@@ -6,43 +6,42 @@ AddContainerTag("backend", $bgColor="#50E3C2", $fontColor="Black")
 AddContainerTag("infra", $bgColor="#FFDDC1", $fontColor="Black")
 AddContainerTag("external-ai", $bgColor="#F5F5A5", $fontColor="Black")
 
-LAYOUT_LEFT_RIGHT()
+' Force top-down layout
+LAYOUT_TOP_DOWN()
 
-Person(user, "User", "User of the mobile application")
+Person(user, "User", "User of the mobile app")
 
 System_Boundary(laundrymate, "LaundryMate System") {
-
-  ' FRONTEND
-  Container(mobile, "Mobile App", "React Native + Expo", "User interface that enables login and interaction with services", "frontend")
-
-  ' BACKEND
-  Container(api, "Backend API", "Django REST", "Backend service with endpoints for image scan", "backend")
-
-  ' INFRASTRUCTURE
-  Container(firebase, "Firebase", "BaaS Platform", "Manages authentication and user data", "infra") {
-    Container(auth, "Authentication", "Firebase Auth", "User login and registration", "infra")
-    Container(db, "Firestore DB", "NoSQL Database", "Stores clothing data and user profiles", "infra")
-  }
-
-  ' EXTERNAL AI SERVICES
-  Container(ai, "AI Services", "Third-Party APIs", "External AI services for detection and recommendations", "external-ai") {
-    Container(gemini, "Gemini API", "Text Generation", "Provides washing program tips", "external-ai")
-    Container(roboflow, "YOLOv8n","", "Detects washing symbols from uploaded images", "external-ai")
-  }
+  
+  ' Row 1: Frontend
+  Container(mobile, "Mobile App", "React Native + Expo", "User interface", "frontend")
+  
+  ' Row 2: Backend
+  Container(api, "Backend API", "Django REST", "Image processing endpoints", "backend")
+  
+  ' Row 3: Infrastructure Services (side by side)
+  Container(auth, "Firebase Auth", "Authentication", "User login", "infra")
+  Container(db, "Firestore", "NoSQL DB", "User data", "infra")
+  
+  ' Row 4: AI Services (side by side)
+  Container(yolo, "YOLOv8n", "Local Model", "Symbol detection", "external-ai")
+  Container(gemini, "Gemini API", "LLM", "Daily tips", "external-ai")
 }
 
-' USER RELATIONSHIPS
-Rel(user, mobile, "Uses")
+' Relationships - vertical flow
+Rel_Down(user, mobile, "Uses")
+Rel_Down(mobile, api, "Sends images", "HTTPS")
 
-' FRONTEND RELATIONSHIPS
-Rel(mobile, auth, "Login / Register")
-Rel(mobile, db, "Stores clothing / profile data")
-Rel(mobile, api, "Sends image / question", "HTTPS")
+' Backend to Infrastructure
+Rel(api, auth, "Verifies")
+Rel(api, db, "Stores")
 
-' BACKEND ↔ AI RELATIONSHIPS
-Rel(api, roboflow, "Sends image for detection", "HTTPS")
-Rel(roboflow, api, "Detected symbols", "JSON")
-Rel(api, gemini, "Sends clothing info / user prompt", "Prompt")
-Rel(gemini, api, "AI recommendations / answers", "Text")
+' Backend to AI
+Rel_Down(api, yolo, "Process image")
+Rel_Down(api, gemini, "Get tips")
+
+' Mobile to Infrastructure  
+Rel(mobile, auth, "Login")
+Rel(mobile, db, "Read data")
 
 @enduml

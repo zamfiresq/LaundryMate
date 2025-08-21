@@ -76,7 +76,6 @@ export default function RootLayout() {
   }, []);
 
 if (!loaded || loading) {
-    console.log('[UI] Blocare detectata: loaded:', loaded, '| authLoading:', loading);
     return (
       <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
         <Text style={{ color: 'white', textAlign: 'center' }}>

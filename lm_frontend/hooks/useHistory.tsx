@@ -22,7 +22,7 @@ export const useHistory = () => {
    */
   const loadSessions = useCallback(async () => {
     if (!user) {
-      console.log('User not authenticated');
+      // console.log('User not authenticated');
       return;
     }
     
@@ -32,7 +32,7 @@ export const useHistory = () => {
     try {
       const historySessions = await HistoryService.getHistorySessions(user.uid);
       setSessions(historySessions);
-      console.log(`Loaded ${historySessions.length} history sessions`);
+      // console.log(`Loaded ${historySessions.length} history sessions`);
     } catch (error) {
       console.error('Error loading history:', error);
       setError('Nu s-au putut încărca sesiunile din istoric');

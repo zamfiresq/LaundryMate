@@ -87,12 +87,10 @@ export default function RegisterScreen() {
     // verify mail before creating the account
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log('Setting displayName:', `${name} ${surname}`);
       await updateProfile(userCredential.user, {
         displayName: `${name} ${surname}`,
       });
       await userCredential.user.reload();
-      // console.log('Reloaded user:', auth.currentUser?.displayName);
 
       await sendEmailVerification(userCredential.user);
       await setDoc(doc(db, "users", userCredential.user.uid), {

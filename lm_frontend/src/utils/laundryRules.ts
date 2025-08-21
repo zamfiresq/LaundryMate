@@ -109,7 +109,7 @@ const COLOR_PROFILES: Record<string, Partial<WashingProfile>> = {
   'culori-inchise': {
     detergentType: 'colorat',
     program: 'Culori închise',
-    specialTips: ['Folosește șervețele captoare de culoare', 'Evită spălarea cu albul pentru a preveni transferul de culoare']
+    specialTips: ['Folosește șervețele captatoare de culoare', 'Evită spălarea cu albul pentru a preveni transferul de culoare']
   },
   'multicolor': {
     detergentType: 'colorat delicat',
